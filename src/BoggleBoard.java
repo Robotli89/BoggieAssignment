@@ -102,6 +102,22 @@ public class BoggleBoard {
     /** @return the current 5x5 board as a char array */
     public char[][] getBoard() { return board; }
 
+    /**
+     * Returns a deep copy of the given board.
+     * Useful for Phase 5 when a contest board must be preserved exactly.
+     * @param original source board to copy
+     * @return new SIZE x SIZE char array with the same contents
+     */
+    public static char[][] copyBoard(char[][] original) {
+        char[][] copy = new char[original.length][original[0].length];
+        for (int r = 0; r < original.length; r++) {
+            for (int c = 0; c < original[r].length; c++) {
+                copy[r][c] = original[r][c];
+            }
+        }
+        return copy;
+    }
+
     /** @return the board dimension (always 5) */
     public int getSize() { return SIZE; }
 

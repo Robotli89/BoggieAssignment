@@ -48,7 +48,7 @@ public class Phase5AIvsAI extends GameSession {
         super(totalRounds, pointTarget, minWordLength, dictionaryPath);
 
         // Load contest board from file if provided
-        if (boardFilePath != null && !boardFilePath.isEmpty()) {
+        if (boardFilePath != null && boardFilePath.isEmpty() == false) {
             loadBoardFromFile(boardFilePath);
         }
 
@@ -59,9 +59,6 @@ public class Phase5AIvsAI extends GameSession {
         players    = new Player[2];
         players[0] = ai1GoesFirst ? ai1 : ai2;
         players[1] = ai1GoesFirst ? ai2 : ai1;
-
-        fileHandler.logGameStart("Phase 5: AI vs AI",
-                new String[]{players[0].getName(), players[1].getName()}, totalRounds);
     }
 
     // ---------------------------------------------------------------

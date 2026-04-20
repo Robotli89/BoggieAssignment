@@ -74,7 +74,7 @@ public class BoggleGUI extends JFrame {
     private DefaultTableModel scoreTableModel;
     private JTextArea   wordHistoryArea;
     private JTextField  wordInput;
-    private JButton     submitButton, passButton, shakeButton;
+    private JButton     submitButton, passButton, shakeButton, concedeButton;
     private JLabel      statusLabel;
 
     // ---------------------------------------------------------------
@@ -341,8 +341,8 @@ public class BoggleGUI extends JFrame {
             switch (selectedPhase) {
                 case 1:
                     currentSession = new Phase1PlayerVsPlayer(
-                        nameFields[0].getText().trim(),
-                        nameFields[1].getText().trim(),
+                        emptyFallbackName(nameFields[0].getText().trim(), "Player 1"),
+                        emptyFallbackName(nameFields[1].getText().trim(), "Player 2"),
                         rounds, pointTarget, minLen, dictionaryPath);
                     break;
 
@@ -351,7 +351,7 @@ public class BoggleGUI extends JFrame {
                             (String) ai1DiffCombo.getSelectedItem());
                     boolean playerFirst = whoFirstCombo.getSelectedIndex() == 0;
                     currentSession = new Phase2PlayerVsAI(
-                        nameFields[0].getText().trim(),
+                        emptyFallbackName(nameFields[0].getText().trim(), "Player 1"),
                         diff, playerFirst,
                         rounds, pointTarget, minLen, dictionaryPath);
                     break;
@@ -361,7 +361,7 @@ public class BoggleGUI extends JFrame {
                     int n = (Integer) numPlayersSpinner.getValue();
                     String[] names = new String[n];
                     for (int i = 0; i < n; i++)
-                        names[i] = nameFields[i].getText().trim();
+                        names[i] = emptyFallbackName(nameFields[i].getText().trim(), "Player " + (i + 1));
                     currentSession = new Phase3MultiPlayer(
                         names, rounds, pointTarget, minLen, dictionaryPath);
                     break;
@@ -371,7 +371,7 @@ public class BoggleGUI extends JFrame {
                     int n = (Integer) numPlayersSpinner.getValue();
                     String[] names = new String[n];
                     for (int i = 0; i < n; i++)
-                        names[i] = nameFields[i].getText().trim();
+                        names[i] = emptyFallbackName(nameFields[i].getText().trim(), "Player " + (i + 1));
                     AIPlayer.Difficulty diff = AIPlayer.Difficulty.valueOf(
                             (String) ai1DiffCombo.getSelectedItem());
                     int aiPos = (Integer) aiPositionSpinner.getValue() - 1;
@@ -517,12 +517,17 @@ public class BoggleGUI extends JFrame {
         shakeButton.setBackground(new Color(80, 60, 140));
         shakeButton.addActionListener(e -> onShakeBoard());
 
+        concedeButton = styledButton("Concede");
+        concedeButton.setBackground(new Color(160, 50, 50));
+        concedeButton.addActionListener(e -> onConcede());
+
         inputRow.add(new JLabel("  Word: ") {{
             setFont(BOLD_FONT); setForeground(TEXT_MAIN);}});
         inputRow.add(wordInput);
         inputRow.add(submitButton);
         inputRow.add(passButton);
         inputRow.add(shakeButton);
+        inputRow.add(concedeButton);
         south.add(inputRow, BorderLayout.CENTER);
 
         statusLabel = new JLabel(" ", SwingConstants.CENTER);
@@ -621,8 +626,9 @@ public class BoggleGUI extends JFrame {
                 statusLabel.setText(playerName + " passed.");
             }
         } else {
-            currentSession.pass();
-            statusLabel.setText(playerName + " passes (no words found).");
+            // AI has exhausted all valid words — concede permanently
+            currentSession.concede();
+            statusLabel.setText(playerName + " concedes (no words found).");
         }
 
         rebuildScoreTable();
@@ -678,6 +684,21 @@ public class BoggleGUI extends JFrame {
         afterTurn();
     }
 
+    /** Handles concede button — permanently removes this player from the game. */
+    private void onConcede() {
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Concede the game? You will be permanently removed from play.",
+                "Concede", JOptionPane.YES_NO_OPTION);
+        if (confirm == JOptionPane.YES_OPTION) {
+            stopTimers();
+            String playerName = currentSession.getCurrentPlayer().getName();
+            currentSession.concede();
+            statusLabel.setText(playerName + " has conceded.");
+            rebuildScoreTable();
+            afterTurn();
+        }
+    }
+
     /** Handles shake-board button. */
     private void onShakeBoard() {
         int confirm = JOptionPane.showConfirmDialog(this,
@@ -693,11 +714,16 @@ public class BoggleGUI extends JFrame {
         }
     }
 
-    /** Called after any completed turn (valid word, invalid word rejected, or pass). */
+    /** Called after any completed turn (valid word, pass, or concede). */
     private void afterTurn() {
         updateRoundLabel();
         boardPanel.clearHighlights();
 
+        // Per-phase early-end check (e.g. AI concedes in Phase 2/4)
+        if (currentSession.isGameOverEarly()) {
+            endGame();
+            return;
+        }
         if (currentSession.isRoundOver()) {
             endRound();
         } else {
@@ -767,8 +793,6 @@ public class BoggleGUI extends JFrame {
         }
         sb.append("\nWinner: ").append(winner.getName()).append("!");
 
-        currentSession.getFileHandler().close();
-
         int choice = JOptionPane.showOptionDialog(this,
                 sb.toString(), "Game Over",
                 JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null,
@@ -809,6 +833,7 @@ public class BoggleGUI extends JFrame {
         wordInput.setEnabled(enabled);
         submitButton.setEnabled(enabled);
         passButton.setEnabled(enabled);
+        concedeButton.setEnabled(enabled);
     }
 
     private void stopTimers() {
@@ -901,6 +926,17 @@ public class BoggleGUI extends JFrame {
                 BorderFactory.createLineBorder(ACCENT),
                 BorderFactory.createEmptyBorder(4, 6, 4, 6)));
         field.setFont(BODY_FONT);
+    }
+
+    /**
+     * Returns the name if non-empty, otherwise returns the fallback string.
+     * Prevents blank player names from reaching the game session.
+     * @param name     the text entered by the user
+     * @param fallback default name to use when name is null or blank
+     * @return a guaranteed non-empty display name
+     */
+    private static String emptyFallbackName(String name, String fallback) {
+        return (name == null || name.isEmpty()) ? fallback : name;
     }
 
     private void styleScrollPane(JScrollPane pane) {

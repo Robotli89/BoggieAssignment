@@ -26,20 +26,22 @@ public class GameSession {
 
     // ---------------------------------------------------------------
     // Shared game state
+    // public: Phase subclasses need to read/write these directly
+    // private: only used inside GameSession
     // ---------------------------------------------------------------
 
-    protected BoggleBoard   boggleBoard;
-    protected Dictionary    dictionary;
-    protected WordValidator wordValidator;
-    protected Player[]      players;
-    protected int           currentPlayerIndex;
-    protected int           currentRound;
-    protected int           totalRounds;
-    protected int           pointTarget;        // 0 = round-count wins only
-    protected int           minWordLength;
-    protected ArrayList<String> usedWordsThisRound; // all words played in this round
-    protected int           consecutivePasses;  // resets when any valid word is played
-    protected FileHandler   fileHandler;
+    public  BoggleBoard   boggleBoard;
+    public  Dictionary    dictionary;
+    public  WordValidator wordValidator;
+    public  Player[]      players;
+
+    private int           currentPlayerIndex;
+    private int           currentRound;
+    private int           totalRounds;
+    private int           pointTarget;        // 0 = round-count wins only
+    private int           minWordLength;
+    private ArrayList<String> usedWordsThisRound; // all words played in this round
+    private int           consecutivePasses;  // resets when any valid word is played
 
     // ---------------------------------------------------------------
     // Constructor
@@ -49,25 +51,23 @@ public class GameSession {
      * Initializes the shared game engine.
      * Subclasses must set players[] after calling super().
      *
-     * @param totalRounds    number of rounds to play
-     * @param pointTarget    first player to reach this total score wins (0 = off)
-     * @param minWordLength  minimum letters required per word
-     * @param dictionaryPath path to wordlist.txt
+     * @param rounds    number of rounds to play
+     * @param target    first player to reach this total score wins (0 = off)
+     * @param minLen    minimum letters required per word
+     * @param dictPath  path to wordlist.txt
      */
-    public GameSession(int totalRounds, int pointTarget,
-                       int minWordLength, String dictionaryPath) {
-        this.totalRounds    = totalRounds;
-        this.pointTarget    = pointTarget;
-        this.minWordLength  = minWordLength;
+    public GameSession(int rounds, int target, int minLen, String dictPath) {
+        totalRounds   = rounds;
+        pointTarget   = target;
+        minWordLength = minLen;
 
-        boggleBoard          = new BoggleBoard();
-        dictionary           = new Dictionary(dictionaryPath, minWordLength);
-        wordValidator        = new WordValidator(boggleBoard.getBoard());
-        usedWordsThisRound   = new ArrayList<>();
-        currentPlayerIndex   = 0;
-        currentRound         = 1;
-        consecutivePasses    = 0;
-        fileHandler          = new FileHandler();
+        boggleBoard        = new BoggleBoard();
+        dictionary         = new Dictionary(dictPath, minLen);
+        wordValidator      = new WordValidator(boggleBoard.getBoard());
+        usedWordsThisRound = new ArrayList<>();
+        currentPlayerIndex = 0;
+        currentRound       = 1;
+        consecutivePasses  = 0;
     }
 
     // ---------------------------------------------------------------
@@ -99,10 +99,10 @@ public class GameSession {
         if (wasWordUsedThisRound(word)) return RESULT_ALREADY_USED;
 
         // Check 3: word exists on the board (DFS)
-        if (!wordValidator.isWordOnBoard(word)) return RESULT_NOT_ON_BOARD;
+        if (wordValidator.isWordOnBoard(word) == false) return RESULT_NOT_ON_BOARD;
 
         // Check 4: valid English word (binary search)
-        if (!dictionary.isValidWord(word)) return RESULT_NOT_IN_DICT;
+        if (dictionary.isValidWord(word) == false) return RESULT_NOT_IN_DICT;
 
         // ---- Word accepted ----
         int points = word.length();  // score = number of letters
@@ -111,27 +111,40 @@ public class GameSession {
         usedWordsThisRound.add(word);
         consecutivePasses = 0;
 
-        fileHandler.logWordPlayed(currentRound, current.getName(), word, points);
         advancePlayer();
         return RESULT_VALID;
     }
 
     /**
      * Records a pass for the current player and advances the turn.
-     * The round ends when ALL players pass consecutively.
+     * The round ends when ALL active (non-conceded) players pass consecutively.
      */
     public void pass() {
-        fileHandler.logPass(currentRound, getCurrentPlayer().getName());
         getCurrentPlayer().pass();
         consecutivePasses++;
         advancePlayer();
     }
 
     /**
-     * Advances the turn to the next player in circular order.
+     * Permanently removes the current player from the game (concede).
+     * Unlike a pass, concede does not count toward the consecutive-pass total —
+     * the remaining active players still each need to pass to end the round.
+     * After conceding, check isGameOverEarly() to see if the game should end.
      */
-    protected void advancePlayer() {
-        currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+    public void concede() {
+        getCurrentPlayer().concede();
+        advancePlayer();
+    }
+
+    /**
+     * Advances the turn to the next non-conceded player in circular order.
+     */
+    private void advancePlayer() {
+        int steps = 0;
+        do {
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            steps++;
+        } while (players[currentPlayerIndex].hasConceded() && steps < players.length);
     }
 
     // ---------------------------------------------------------------
@@ -139,11 +152,30 @@ public class GameSession {
     // ---------------------------------------------------------------
 
     /**
-     * @return true when all players have passed consecutively
-     *         (nobody can find any more words — end this round)
+     * @return true when all active (non-conceded) players have passed
+     *         consecutively, or when every player has conceded
      */
     public boolean isRoundOver() {
-        return consecutivePasses >= players.length;
+        int active = 0;
+        for (Player p : players) {
+            if (p.hasConceded() == false) active++;
+        }
+        return active == 0 || consecutivePasses >= active;
+    }
+
+    /**
+     * Checks per-phase early end conditions (e.g., AI concedes in Phase 2/4).
+     * Default: game ends early only when every player has conceded.
+     * Phase subclasses override this for additional end conditions.
+     *
+     * @return true if the game should end immediately
+     */
+    public boolean isGameOverEarly() {
+        // Sequential check: game ends when no active players remain
+        for (Player p : players) {
+            if (p.hasConceded() == false) return false;
+        }
+        return true;
     }
 
     /**
@@ -171,7 +203,6 @@ public class GameSession {
         consecutivePasses  = 0;
         currentPlayerIndex = 0;
         for (Player p : players) p.resetForNewRound();
-        fileHandler.logNewRound(currentRound);
     }
 
     /**
@@ -183,7 +214,6 @@ public class GameSession {
         wordValidator.setBoard(boggleBoard.getBoard());
         usedWordsThisRound.clear();
         consecutivePasses = 0;
-        fileHandler.logEvent("Board shaken up (Round " + currentRound + ")");
     }
 
     // ---------------------------------------------------------------
@@ -268,12 +298,9 @@ public class GameSession {
      * @param min new minimum word length
      */
     public void setMinWordLength(int min) {
-        this.minWordLength = min;
+        minWordLength = min;
         dictionary.setMinWordLength(min);
     }
-
-    /** @return the file handler (for save/load from GUI) */
-    public FileHandler getFileHandler()         { return fileHandler; }
 
     /**
      * Sequentially checks whether a word has already been played this round.

@@ -41,8 +41,31 @@ public class Phase2PlayerVsAI extends GameSession {
         players    = new Player[2];
         players[0] = playerGoesFirst ? human : ai;
         players[1] = playerGoesFirst ? ai    : human;
+    }
 
-        fileHandler.logGameStart("Phase 2: Player vs AI",
-                new String[]{playerName, "AI (" + aiDifficulty + ")"}, totalRounds);
+    // ---------------------------------------------------------------
+    // Per-phase end condition (from shouldEndGame logic)
+    // ---------------------------------------------------------------
+
+    /**
+     * Phase 2 early-end conditions:
+     *   - AI concedes → game over immediately (AI exhausted all words)
+     *   - Human concedes AND human score is behind AI → game over
+     *   - Both concede → game over (base case)
+     */
+    @Override
+    public boolean isGameOverEarly() {
+        Player ai    = null;
+        Player human = null;
+        for (Player p : players) {
+            if (p.isAI()) ai    = p;
+            else           human = p;
+        }
+        // AI concedes → game over
+        if (ai != null && ai.hasConceded()) return true;
+        // Human concedes while losing → game over
+        if (human != null && human.hasConceded()
+                && ai != null && human.getTotalScore() < ai.getTotalScore()) return true;
+        return super.isGameOverEarly();
     }
 }

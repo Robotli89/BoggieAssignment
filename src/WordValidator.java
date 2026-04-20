@@ -22,9 +22,9 @@ public class WordValidator {
      * Creates a validator for the given board.
      * @param board the 5x5 board of uppercase letters
      */
-    public WordValidator(char[][] board) {
-        this.board = board;
-        this.size  = board.length;
+    public WordValidator(char[][] newBoard) {
+        board = newBoard;
+        size  = newBoard.length;
     }
 
     // ---------------------------------------------------------------
@@ -35,9 +35,9 @@ public class WordValidator {
      * Updates the board reference when the board changes (e.g., shaken up).
      * @param board the new board to validate against
      */
-    public void setBoard(char[][] board) {
-        this.board = board;
-        this.size  = board.length;
+    public void setBoard(char[][] newBoard) {
+        board = newBoard;
+        size  = newBoard.length;
     }
 
     /**

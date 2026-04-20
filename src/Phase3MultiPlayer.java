@@ -39,7 +39,5 @@ public class Phase3MultiPlayer extends GameSession {
         for (int i = 0; i < playerNames.length; i++) {
             players[i] = new Player(playerNames[i]);
         }
-
-        fileHandler.logGameStart("Phase 3: Multi-player", playerNames, totalRounds);
     }
 }

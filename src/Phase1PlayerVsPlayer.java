@@ -35,8 +35,5 @@ public class Phase1PlayerVsPlayer extends GameSession {
         players    = new Player[2];
         players[0] = new Player(player1Name);
         players[1] = new Player(player2Name);
-
-        fileHandler.logGameStart("Phase 1: Player vs Player",
-                new String[]{player1Name, player2Name}, totalRounds);
     }
 }

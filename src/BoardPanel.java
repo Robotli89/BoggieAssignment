@@ -39,11 +39,11 @@ public class BoardPanel extends JPanel {
      * Creates an empty board panel for a board of the given dimension.
      * @param size board dimension (5 for the standard Boggle board)
      */
-    public BoardPanel(int size) {
-        this.size  = size;
-        this.cells = new JLabel[size][size];
+    public BoardPanel(int boardSize) {
+        size  = boardSize;
+        cells = new JLabel[boardSize][boardSize];
 
-        setLayout(new GridLayout(size, size, 4, 4));
+        setLayout(new GridLayout(boardSize, boardSize, 4, 4));
         setBackground(BORDER_COLOR);
         setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
 

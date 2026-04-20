@@ -30,8 +30,8 @@ public class Dictionary {
      * @param filename      path to the word list file
      * @param minWordLength minimum letters required for a valid word
      */
-    public Dictionary(String filename, int minWordLength) {
-        this.minWordLength = minWordLength;
+    public Dictionary(String filename, int minLen) {
+        minWordLength = minLen;
         loadDictionary(filename);
     }
 
@@ -113,7 +113,7 @@ public class Dictionary {
      * Updates the minimum word length filter.
      * @param min new minimum word length (e.g. 3, 4, or 5)
      */
-    public void setMinWordLength(int min) { this.minWordLength = min; }
+    public void setMinWordLength(int min) { minWordLength = min; }
 
     /** @return total number of words loaded */
     public int getWordCount()         { return wordCount; }

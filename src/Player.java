@@ -17,12 +17,13 @@ public class Player {
     // Fields
     // ---------------------------------------------------------------
 
-    protected String     name;
-    protected int        totalScore;        // cumulative score across all rounds
-    protected int        roundScore;        // score earned in the current round
-    protected ArrayList<String> usedWords;  // words the player has played this round
-    protected int        consecutivePasses; // passes in a row (resets on valid word)
-    protected boolean    isAI;             // true for AI players
+    private String     name;
+    private int        totalScore;        // cumulative score across all rounds
+    private int        roundScore;        // score earned in the current round
+    private ArrayList<String> usedWords;  // words the player has played this round
+    private int        consecutivePasses; // passes in a row (resets on valid word)
+    public  boolean    isAI;             // true for AI players (public so AIPlayer can set it)
+    private boolean    hasConceded;      // true once player permanently concedes
 
     // ---------------------------------------------------------------
     // Constructor
@@ -30,15 +31,16 @@ public class Player {
 
     /**
      * Creates a new human player with the given name.
-     * @param name the player's display name
+     * @param playerName the player's display name
      */
-    public Player(String name) {
-        this.name              = name;
-        this.totalScore        = 0;
-        this.roundScore        = 0;
-        this.usedWords         = new ArrayList<>();
-        this.consecutivePasses = 0;
-        this.isAI              = false;
+    public Player(String playerName) {
+        name              = playerName;
+        totalScore        = 0;
+        roundScore        = 0;
+        usedWords         = new ArrayList<>();
+        consecutivePasses = 0;
+        isAI              = false;
+        hasConceded       = false;
     }
 
     // ---------------------------------------------------------------
@@ -70,6 +72,14 @@ public class Player {
      */
     public void pass() {
         consecutivePasses++;
+    }
+
+    /**
+     * Permanently marks this player as having conceded.
+     * A conceded player is skipped for all future turns.
+     */
+    public void concede() {
+        hasConceded = true;
     }
 
     /**
@@ -115,6 +125,9 @@ public class Player {
 
     /** @return true if this player is controlled by the AI */
     public boolean isAI()               { return isAI; }
+
+    /** @return true if this player has permanently conceded */
+    public boolean hasConceded()        { return hasConceded; }
 
     /** @return a short summary string for display */
     @Override

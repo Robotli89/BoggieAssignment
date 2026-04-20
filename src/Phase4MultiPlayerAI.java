@@ -47,9 +47,50 @@ public class Phase4MultiPlayerAI extends GameSession {
             players[i] = (i == aiPosition) ? ai : new Player(humanNames[humanIdx++]);
         }
 
-        // Build combined name list for log
-        String[] allNames = new String[totalPlayers];
-        for (int i = 0; i < totalPlayers; i++) allNames[i] = players[i].getName();
-        fileHandler.logGameStart("Phase 4: Multi-player + AI", allNames, totalRounds);
+    }
+
+    // ---------------------------------------------------------------
+    // Per-phase end condition (from shouldEndGame logic)
+    // ---------------------------------------------------------------
+
+    /**
+     * Phase 4 early-end conditions:
+     *   - AI concedes → game over immediately
+     *   - All humans concede AND AI has the highest score → game over
+     *   - All players concede → game over (base case)
+     */
+    @Override
+    public boolean isGameOverEarly() {
+        // Find the AI player
+        Player ai = null;
+        for (Player p : players) {
+            if (p.isAI()) { ai = p; break; }
+        }
+
+        // AI concedes → game over
+        if (ai != null && ai.hasConceded()) return true;
+
+        // Sequential check: have all human players conceded?
+        boolean allHumansConceded = true;
+        for (Player p : players) {
+            if (p.isAI() == false && p.hasConceded() == false) {
+                allHumansConceded = false;
+                break;
+            }
+        }
+
+        // All humans conceded + AI is leading → game over
+        if (allHumansConceded && ai != null) {
+            boolean aiHighest = true;
+            for (Player p : players) {
+                if (p.isAI() == false && p.getTotalScore() > ai.getTotalScore()) {
+                    aiHighest = false;
+                    break;
+                }
+            }
+            if (aiHighest) return true;
+        }
+
+        return super.isGameOverEarly();
     }
 }

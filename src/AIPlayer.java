@@ -43,16 +43,16 @@ public class AIPlayer extends Player {
 
     /**
      * Creates an AI player with the specified difficulty.
-     * @param name       display name (e.g., "AI (Smart)")
-     * @param difficulty AI difficulty level
-     * @param dictionary shared dictionary for word lookup
+     * @param playerName display name (e.g., "AI (Smart)")
+     * @param diff       AI difficulty level
+     * @param dict       shared dictionary for word lookup
      */
-    public AIPlayer(String name, Difficulty difficulty, Dictionary dictionary) {
-        super(name);
-        this.difficulty  = difficulty;
-        this.dictionary  = dictionary;
-        this.random      = new Random();
-        this.isAI        = true;
+    public AIPlayer(String playerName, Difficulty diff, Dictionary dict) {
+        super(playerName);
+        difficulty = diff;
+        dictionary = dict;
+        random     = new Random();
+        isAI       = true;
     }
 
     // ---------------------------------------------------------------
@@ -60,107 +60,64 @@ public class AIPlayer extends Player {
     // ---------------------------------------------------------------
 
     /**
-     * Determines the AI's move for this turn.
-     * The AI does not solve the whole board. It guesses dictionary words and
-     * lets WordValidator check each guess using the same recursion as a human
-     * player's submitted word.
+     * Determines the AI's move for this turn using a guess-and-check strategy.
+     *
+     * Iterates the entire dictionary and checks each word against the board
+     * using the same recursive DFS as word validation.
+     *   - BEGINNER: returns the shortest valid word found (fewest points)
+     *   - MEDIUM:   collects all valid words, picks one at random
+     *   - SMART:    returns the longest valid word found (most points)
+     *
+     * Returns null when no valid unplayed word exists on the board — the caller
+     * should treat this as a concede.
      *
      * @param board           the current 5x5 board
      * @param globalUsedWords words already played this round by any player
-     * @return the chosen word, or null if the AI must pass
+     * @return the chosen word, or null if the AI has no move
      */
     public String getAIMove(char[][] board, ArrayList<String> globalUsedWords) {
         WordValidator validator = new WordValidator(board);
-        ArrayList<String> guesses = buildGuessList(globalUsedWords, true);
-        String move = tryGuesses(validator, guesses);
-
-        if (move != null) {
-            return move;
-        }
-
-        // If the difficulty words did not work, try the rest before passing.
-        ArrayList<String> fallbackGuesses = buildGuessList(globalUsedWords, false);
-        return tryGuesses(validator, fallbackGuesses);
-    }
-
-    // ---------------------------------------------------------------
-    // Guess-and-check AI helpers
-    // ---------------------------------------------------------------
-
-    /**
-     * Builds a list of dictionary words for the AI to try.
-     * Uses ArrayList and loops so the logic stays close to the course level.
-     *
-     * @param globalUsedWords words already played this round
-     * @param useDifficulty true to filter by difficulty, false to try all words
-     * @return possible dictionary guesses
-     */
-    private ArrayList<String> buildGuessList(ArrayList<String> globalUsedWords,
-                                             boolean useDifficulty) {
-        ArrayList<String> guesses = new ArrayList<>();
         String[] allWords = dictionary.getAllWords();
+        String chosen = null;
+        ArrayList<String> valid = new ArrayList<>();
 
         for (int i = 0; i < allWords.length; i++) {
             String word = allWords[i];
-            if (!wasAlreadyUsed(word, globalUsedWords)
-                    && (!useDifficulty || matchesDifficulty(word))) {
-                guesses.add(word);
+
+            // Sequential search: skip words already played this round
+            boolean alreadyUsed = false;
+            for (int j = 0; j < globalUsedWords.size(); j++) {
+                if (globalUsedWords.get(j).equalsIgnoreCase(word)) {
+                    alreadyUsed = true;
+                    break;
+                }
+            }
+            if (alreadyUsed) continue;
+
+            // Check if the word can be traced on the board (recursive DFS)
+            if (validator.isWordOnBoard(word) == false) continue;
+
+            if (difficulty == Difficulty.BEGINNER) {
+                // Keep shortest word found
+                if (chosen == null || word.length() < chosen.length()) {
+                    chosen = word;
+                }
+            } else if (difficulty == Difficulty.SMART) {
+                // Keep longest word found
+                if (chosen == null || word.length() > chosen.length()) {
+                    chosen = word;
+                }
+            } else {
+                // MEDIUM: collect all valid words, pick randomly below
+                valid.add(word);
             }
         }
 
-        return guesses;
-    }
-
-    /**
-     * Randomly tries words until one appears on the board.
-     * @param validator checks whether a word is on the board
-     * @param guesses dictionary words to try
-     * @return a valid board word, or null if none were found
-     */
-    private String tryGuesses(WordValidator validator, ArrayList<String> guesses) {
-        while (!guesses.isEmpty()) {
-            int index = random.nextInt(guesses.size());
-            String guess = guesses.remove(index);
-
-            if (validator.isWordOnBoard(guess)) {
-                return guess;
-            }
+        if (difficulty == Difficulty.MEDIUM) {
+            if (valid.isEmpty()) return null;
+            return valid.get(random.nextInt(valid.size()));
         }
-
-        return null;
-    }
-
-    /**
-     * Chooses which word lengths each difficulty should try first.
-     * @param word dictionary word to test
-     * @return true if this difficulty should try the word
-     */
-    private boolean matchesDifficulty(String word) {
-        int min = dictionary.getMinWordLength();
-
-        switch (difficulty) {
-            case BEGINNER:
-                return word.length() <= min + 1;
-            case MEDIUM:
-                return word.length() <= min + 3;
-            case SMART:
-                return word.length() >= min + 3;
-            default:
-                return true;
-        }
-    }
-
-    /**
-     * Sequentially checks if a word is already in the played-word list.
-     * @param word word to check
-     * @param usedWords words already played this round
-     * @return true if the word was already used
-     */
-    private boolean wasAlreadyUsed(String word, ArrayList<String> usedWords) {
-        for (int i = 0; i < usedWords.size(); i++) {
-            if (usedWords.get(i).equalsIgnoreCase(word)) return true;
-        }
-        return false;
+        return chosen;
     }
 
     // ---------------------------------------------------------------
@@ -168,8 +125,8 @@ public class AIPlayer extends Player {
     // ---------------------------------------------------------------
 
     /** @return current difficulty level */
-    public Difficulty getDifficulty()              { return difficulty; }
+    public Difficulty getDifficulty()     { return difficulty; }
 
     /** @param d new difficulty level */
-    public void setDifficulty(Difficulty d)        { this.difficulty = d; }
+    public void setDifficulty(Difficulty d) { difficulty = d; }
 }
