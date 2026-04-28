@@ -42,22 +42,22 @@ public class BoggleGUI extends JFrame {
     // Game state
     // ---------------------------------------------------------------
     private GameSession currentSession;
-    private int         selectedPhase;       // 1–5
+    private int         selectedPhase;       // phase number
     private String      dictionaryPath = "wordlist.txt";
 
     // ---------------------------------------------------------------
     // Timers
     // ---------------------------------------------------------------
-    private javax.swing.Timer countdownTimer; // 15-second human-turn countdown
-    private javax.swing.Timer aiMoveTimer;    // delay before AI plays
+    private javax.swing.Timer countdownTimer; // human turn timer
+    private javax.swing.Timer aiMoveTimer;    // AI move delay
     private int               timeLeft;
 
     // ---------------------------------------------------------------
     // ---- SETUP PANEL fields (re-used for all phases) ----
     // ---------------------------------------------------------------
     private JLabel     setupTitleLabel;
-    private JPanel     setupFieldsPanel;          // holds dynamic fields
-    private JTextField[] nameFields;              // up to 6 player name fields
+    private JPanel     setupFieldsPanel;          // dynamic setup fields
+    private JTextField[] nameFields;              // player name fields
     private JSpinner   numPlayersSpinner;
     private JComboBox<String>  ai1DiffCombo, ai2DiffCombo;
     private JComboBox<String>  whoFirstCombo;
@@ -76,20 +76,20 @@ public class BoggleGUI extends JFrame {
     private DefaultTableModel scoreTableModel;
     private JTextArea   wordHistoryArea;
     private JTextField  wordInput;
-    private JButton     submitButton, passButton, shakeButton, concedeButton;
+    private JButton     submitButton, passButton, shakeButton, quitButton;
     private JLabel      statusLabel;
 
     // ---------------------------------------------------------------
-    // Colours / fonts
+    // Plain colours / fonts
     // ---------------------------------------------------------------
-    private static final Color  BG_DARK   = new Color( 30,  40,  55);
-    private static final Color  BG_PANEL  = new Color( 45,  60,  80);
-    private static final Color  ACCENT    = new Color( 70, 160, 220);
-    private static final Color  TEXT_MAIN = Color.WHITE;
-    private static final Color  TEXT_DIM  = new Color(180, 200, 220);
-    private static final Font   TITLE_FONT= new Font("Arial", Font.BOLD, 28);
-    private static final Font   BODY_FONT = new Font("Arial", Font.PLAIN, 14);
-    private static final Font   BOLD_FONT = new Font("Arial", Font.BOLD,  14);
+    private static final Color  BG_DARK   = UIManager.getColor("Panel.background");
+    private static final Color  BG_PANEL  = UIManager.getColor("Panel.background");
+    private static final Color  ACCENT    = Color.BLACK;
+    private static final Color  TEXT_MAIN = Color.BLACK;
+    private static final Color  TEXT_DIM  = Color.DARK_GRAY;
+    private static final Font   TITLE_FONT= new Font("Dialog", Font.PLAIN, 24);
+    private static final Font   BODY_FONT = new Font("Dialog", Font.PLAIN, 12);
+    private static final Font   BOLD_FONT = new Font("Dialog", Font.PLAIN, 12);
 
     // ---------------------------------------------------------------
     // Constructor
@@ -121,13 +121,11 @@ public class BoggleGUI extends JFrame {
         panel.setBackground(BG_DARK);
         panel.setBorder(BorderFactory.createEmptyBorder(40, 60, 40, 60));
 
-        // Title
         JLabel title = new JLabel("BOGGLE", SwingConstants.CENTER);
         title.setFont(new Font("Arial", Font.BOLD, 48));
         title.setForeground(ACCENT);
         panel.add(title, BorderLayout.NORTH);
 
-        // Phase buttons
         JPanel buttonPanel = new JPanel(new GridLayout(6, 1, 0, 12));
         buttonPanel.setBackground(BG_DARK);
 
@@ -142,19 +140,17 @@ public class BoggleGUI extends JFrame {
 
         for (int i = 0; i < labels.length; i++) {
             final int phase = i + 1;
-            JButton btn = styledButton(labels[i]);
+            JButton btn = makeButton(labels[i]);
             if (i < 5) {
                 btn.addActionListener(e -> showSetup(phase));
             } else {
                 btn.addActionListener(e -> System.exit(0));
-                btn.setBackground(new Color(180, 60, 60));
             }
             buttonPanel.add(btn);
         }
 
         panel.add(buttonPanel, BorderLayout.CENTER);
 
-        // Footer
         JLabel footer = new JLabel("ICS4U — Boggle Project", SwingConstants.CENTER);
         footer.setFont(BODY_FONT);
         footer.setForeground(TEXT_DIM);
@@ -181,13 +177,11 @@ public class BoggleGUI extends JFrame {
         setupFieldsPanel.setBackground(BG_DARK);
         outer.add(new JScrollPane(setupFieldsPanel), BorderLayout.CENTER);
 
-        // Bottom buttons
         JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         btnRow.setBackground(BG_DARK);
 
-        JButton backBtn  = styledButton("← Back");
-        JButton startBtn = styledButton("Start Game →");
-        startBtn.setBackground(new Color(40, 140, 80));
+        JButton backBtn  = makeButton("Back");
+        JButton startBtn = makeButton("Start Game");
         backBtn.addActionListener (e -> cardLayout.show(mainContainer, CARD_MENU));
         startBtn.addActionListener(e -> startGame());
         btnRow.add(backBtn);
@@ -197,7 +191,7 @@ public class BoggleGUI extends JFrame {
         return outer;
     }
 
-    /** Populates setup panel with fields appropriate for the chosen phase. */
+    /** Builds setup controls for the selected phase. */
     private void showSetup(int phase) {
         selectedPhase = phase;
         setupFieldsPanel.removeAll();
@@ -211,7 +205,7 @@ public class BoggleGUI extends JFrame {
         };
         setupTitleLabel.setText(phaseNames[phase]);
 
-        // ---- Phase-specific player fields ----
+        // Add phase-specific player controls.
         switch (phase) {
             case 1: buildSetupPhase1(); break;
             case 2: buildSetupPhase2(); break;
@@ -220,19 +214,18 @@ public class BoggleGUI extends JFrame {
             case 5: buildSetupPhase5(); break;
         }
 
-        // ---- Common game options ----
+        // Add shared game options.
         setupFieldsPanel.add(Box.createVerticalStrut(12));
         setupFieldsPanel.add(sectionLabel("Game Options"));
         roundsSpinner      = addSpinnerRow("Number of Rounds:", 3, 1, 20);
         pointTargetSpinner = addSpinnerRow("Point Target (0 = off):", 50, 0, 500);
         minLenSpinner      = addSpinnerRow("Minimum Word Length:", 3, 2, 8);
 
-        // Dictionary path
+        // Add dictionary file selector.
         setupFieldsPanel.add(Box.createVerticalStrut(8));
         JPanel dictRow = labeledRow("Dictionary File:");
         JTextField dictField = new JTextField(dictionaryPath, 20);
-        styleTextField(dictField);
-        JButton browseBtn = styledButton("Browse");
+        JButton browseBtn = makeButton("Browse");
         browseBtn.setFont(new Font("Arial", Font.PLAIN, 12));
         browseBtn.addActionListener(e -> {
             JFileChooser fc = new JFileChooser();
@@ -317,8 +310,7 @@ public class BoggleGUI extends JFrame {
         setupFieldsPanel.add(sectionLabel("Contest Board (optional)"));
         JPanel row = labeledRow("Board File:");
         boardFileField = new JTextField("board.txt", 18);
-        styleTextField(boardFileField);
-        JButton browse = styledButton("Browse");
+        JButton browse = makeButton("Browse");
         browse.setFont(new Font("Arial", Font.PLAIN, 12));
         browse.addActionListener(e -> {
             JFileChooser fc = new JFileChooser();
@@ -349,8 +341,7 @@ public class BoggleGUI extends JFrame {
                     break;
 
                 case 2: {
-                    AIPlayer.Difficulty diff = AIPlayer.Difficulty.valueOf(
-                            (String) ai1DiffCombo.getSelectedItem());
+                    int diff = getSelectedDifficulty(ai1DiffCombo);
                     boolean playerFirst = whoFirstCombo.getSelectedIndex() == 0;
                     currentSession = new Phase2PlayerVsAI(
                         emptyFallbackName(nameFields[0].getText().trim(), "Player 1"),
@@ -374,8 +365,7 @@ public class BoggleGUI extends JFrame {
                     String[] names = new String[n];
                     for (int i = 0; i < n; i++)
                         names[i] = emptyFallbackName(nameFields[i].getText().trim(), "Player " + (i + 1));
-                    AIPlayer.Difficulty diff = AIPlayer.Difficulty.valueOf(
-                            (String) ai1DiffCombo.getSelectedItem());
+                    int diff = getSelectedDifficulty(ai1DiffCombo);
                     int aiPos = (Integer) aiPositionSpinner.getValue() - 1;
                     currentSession = new Phase4MultiPlayerAI(
                         names, diff, aiPos,
@@ -384,18 +374,16 @@ public class BoggleGUI extends JFrame {
                 }
 
                 case 5: {
-                    AIPlayer.Difficulty d1 = AIPlayer.Difficulty.valueOf(
-                            (String) ai1DiffCombo.getSelectedItem());
-                    AIPlayer.Difficulty d2 = AIPlayer.Difficulty.valueOf(
-                            (String) ai2DiffCombo.getSelectedItem());
-                    int firstIdx = whoFirstCombo.getSelectedIndex(); // 0=AI1, 1=AI2, 2=toss
+                    int d1 = getSelectedDifficulty(ai1DiffCombo);
+                    int d2 = getSelectedDifficulty(ai2DiffCombo);
+                    int firstIdx = whoFirstCombo.getSelectedIndex(); // AI-1, AI-2, or toss
                     boolean ai1First = firstIdx == 0
                             || (firstIdx == 2 && new Random().nextBoolean());
                     String boardFile = boardFileField.getText().trim();
                     currentSession = new Phase5AIvsAI(
                         d1, d2, ai1First,
                         rounds, pointTarget, minLen, dictionaryPath,
-                        boardFile.isEmpty() ? null : boardFile);
+                        getBlankAsNull(boardFile));
                     break;
                 }
             }
@@ -419,7 +407,7 @@ public class BoggleGUI extends JFrame {
         panel.setBackground(BG_DARK);
         panel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
-        // ---- NORTH: phase title + round info ----
+        // Top row: phase and round.
         JPanel north = new JPanel(new BorderLayout());
         north.setBackground(BG_DARK);
         phaseTitleLabel = new JLabel("Boggle", SwingConstants.LEFT);
@@ -432,7 +420,7 @@ public class BoggleGUI extends JFrame {
         north.add(roundLabel,      BorderLayout.EAST);
         panel.add(north, BorderLayout.NORTH);
 
-        // ---- CENTER: board (left) + info (right) ----
+        // Center row: board and stats.
         JPanel center = new JPanel(new BorderLayout(12, 0));
         center.setBackground(BG_DARK);
 
@@ -442,7 +430,7 @@ public class BoggleGUI extends JFrame {
         JPanel rightPanel = new JPanel(new BorderLayout(0, 10));
         rightPanel.setBackground(BG_DARK);
 
-        // Current player + timer
+        // Current player and timer.
         JPanel playerInfo = new JPanel(new GridLayout(2, 2, 6, 4));
         playerInfo.setBackground(BG_PANEL);
         playerInfo.setBorder(new CompoundBorder(
@@ -451,14 +439,14 @@ public class BoggleGUI extends JFrame {
         playerInfo.add(dimLabel("Current Player:"));
         playerInfo.add(dimLabel("Time:"));
         currentPlayerLabel = boldLabel("—");
-        currentPlayerLabel.setForeground(new Color(100, 230, 100));
+        currentPlayerLabel.setForeground(Color.BLACK);
         timerLabel = boldLabel("15");
-        timerLabel.setForeground(new Color(255, 180, 50));
+        timerLabel.setForeground(Color.BLACK);
         playerInfo.add(currentPlayerLabel);
         playerInfo.add(timerLabel);
         rightPanel.add(playerInfo, BorderLayout.NORTH);
 
-        // Score table
+        // Player score table.
         String[] cols = {"Player", "Round", "Total"};
         scoreTableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -473,10 +461,9 @@ public class BoggleGUI extends JFrame {
         scoreTable.getTableHeader().setFont(BOLD_FONT);
         JScrollPane scorePane = new JScrollPane(scoreTable);
         scorePane.setPreferredSize(new Dimension(260, 120));
-        styleScrollPane(scorePane);
         rightPanel.add(scorePane, BorderLayout.CENTER);
 
-        // Word history
+        // Round word history.
         JPanel historyWrapper = new JPanel(new BorderLayout());
         historyWrapper.setBackground(BG_DARK);
         JLabel histTitle = dimLabel("Words This Round:");
@@ -488,14 +475,13 @@ public class BoggleGUI extends JFrame {
         wordHistoryArea.setForeground(TEXT_MAIN);
         wordHistoryArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
         JScrollPane histPane = new JScrollPane(wordHistoryArea);
-        styleScrollPane(histPane);
         historyWrapper.add(histPane, BorderLayout.CENTER);
         rightPanel.add(historyWrapper, BorderLayout.SOUTH);
 
         center.add(rightPanel, BorderLayout.CENTER);
         panel.add(center, BorderLayout.CENTER);
 
-        // ---- SOUTH: input + status ----
+        // Bottom row: word input and status.
         JPanel south = new JPanel(new BorderLayout(0, 6));
         south.setBackground(BG_DARK);
 
@@ -503,38 +489,33 @@ public class BoggleGUI extends JFrame {
         inputRow.setBackground(BG_DARK);
 
         wordInput = new JTextField(16);
-        styleTextField(wordInput);
         wordInput.setFont(new Font("Arial", Font.BOLD, 16));
-        wordInput.addActionListener(e -> onSubmit()); // Enter key submits
+        wordInput.addActionListener(e -> onSubmit()); // Enter submits.
 
-        submitButton = styledButton("Submit");
-        submitButton.setBackground(new Color(40, 140, 80));
+        submitButton = makeButton("Submit");
         submitButton.addActionListener(e -> onSubmit());
 
-        passButton = styledButton("Pass");
-        passButton.setBackground(new Color(140, 90, 40));
+        passButton = makeButton("Pass");
         passButton.addActionListener(e -> onPass());
 
-        shakeButton = styledButton("Shake Board");
-        shakeButton.setBackground(new Color(80, 60, 140));
+        shakeButton = makeButton("Shake Board");
         shakeButton.addActionListener(e -> onShakeBoard());
 
-        concedeButton = styledButton("Concede");
-        concedeButton.setBackground(new Color(160, 50, 50));
-        concedeButton.addActionListener(e -> onConcede());
+        quitButton = makeButton("Quit");
+        quitButton.addActionListener(e -> onQuitGame());
 
-        inputRow.add(new JLabel("  Word: ") {{
-            setFont(BOLD_FONT); setForeground(TEXT_MAIN);}});
+        JLabel wordLabel = new JLabel("Word:");
+        inputRow.add(wordLabel);
         inputRow.add(wordInput);
         inputRow.add(submitButton);
         inputRow.add(passButton);
         inputRow.add(shakeButton);
-        inputRow.add(concedeButton);
+        inputRow.add(quitButton);
         south.add(inputRow, BorderLayout.CENTER);
 
         statusLabel = new JLabel(" ", SwingConstants.CENTER);
         statusLabel.setFont(BOLD_FONT);
-        statusLabel.setForeground(new Color(255, 200, 100));
+        statusLabel.setForeground(Color.BLACK);
         south.add(statusLabel, BorderLayout.SOUTH);
 
         panel.add(south, BorderLayout.SOUTH);
@@ -566,18 +547,21 @@ public class BoggleGUI extends JFrame {
     //  GAME LOOP
     // =================================================================
 
-    /** Prepares the UI for the next player's turn. */
+    /** Sets the UI for the next turn. */
     private void nextTurn() {
         if (currentSession.isRoundOver()) { endRound(); return; }
 
         Player current = currentSession.getCurrentPlayer();
-        currentPlayerLabel.setText(current.getName()
-                + (current.isAI() ? " (AI)" : ""));
+        if (current.isAI()) {
+            currentPlayerLabel.setText(current.getName() + " (AI)");
+        } else {
+            currentPlayerLabel.setText(current.getName());
+        }
 
         stopTimers();
 
         if (current.isAI()) {
-            // AI turn: disable input, show "thinking", then play after delay
+            // Delay AI moves so the turn is visible.
             setInputEnabled(false);
             statusLabel.setText(current.getName() + " is thinking...");
             timerLabel.setText("—");
@@ -585,7 +569,7 @@ public class BoggleGUI extends JFrame {
             aiMoveTimer.setRepeats(false);
             aiMoveTimer.start();
         } else {
-            // Human turn: enable input, start 15-second countdown
+            // Start the human turn timer.
             setInputEnabled(true);
             wordInput.setText("");
             wordInput.requestFocus();
@@ -597,11 +581,15 @@ public class BoggleGUI extends JFrame {
         }
     }
 
-    /** Ticks the 15-second countdown; auto-passes when it reaches zero. */
+    /** Updates the countdown and auto-passes at zero. */
     private void tickTimer() {
         timeLeft--;
         timerLabel.setText(String.valueOf(timeLeft));
-        timerLabel.setForeground(timeLeft <= 5 ? Color.RED : new Color(255, 180, 50));
+        if (timeLeft <= 5) {
+            timerLabel.setForeground(Color.RED);
+        } else {
+            timerLabel.setForeground(Color.BLACK);
+        }
         if (timeLeft <= 0) {
             countdownTimer.stop();
             statusLabel.setText("Time's up! Auto-passing for " +
@@ -611,7 +599,7 @@ public class BoggleGUI extends JFrame {
         }
     }
 
-    /** Executes the AI's chosen move. */
+    /** Runs the AI turn. */
     private void executeAIMove() {
         String move = currentSession.getAIMove();
         String playerName = currentSession.getCurrentPlayer().getName();
@@ -623,24 +611,25 @@ public class BoggleGUI extends JFrame {
                         + "\" for " + move.length() + " points!");
                 appendWordHistory(playerName, move);
             } else {
-                // AI found word invalid (shouldn't happen normally) — pass
+                // Fall back to pass if the AI result is rejected.
                 currentSession.pass();
                 statusLabel.setText(playerName + " passed.");
             }
         } else {
-            // AI has exhausted all valid words — concede permanently
-            currentSession.concede();
-            statusLabel.setText(playerName + " concedes (no words found).");
+            currentSession.playerQuitsGame();
+            statusLabel.setText(playerName + " quits because no words were found.");
         }
 
         rebuildScoreTable();
         afterTurn();
     }
 
-    /** Handles submit button / Enter key for human player. */
+    /** Handles a human word submission. */
     private void onSubmit() {
         String word = wordInput.getText().trim().toUpperCase();
-        if (word.isEmpty()) return;
+        if (word.length() == 0) {
+            return;
+        }
 
         stopTimers();
         String playerName = currentSession.getCurrentPlayer().getName();
@@ -676,7 +665,7 @@ public class BoggleGUI extends JFrame {
         afterTurn();
     }
 
-    /** Handles pass button. */
+    /** Handles the pass button. */
     private void onPass() {
         stopTimers();
         String playerName = currentSession.getCurrentPlayer().getName();
@@ -686,22 +675,22 @@ public class BoggleGUI extends JFrame {
         afterTurn();
     }
 
-    /** Handles concede button — permanently removes this player from the game. */
-    private void onConcede() {
+    /** Handles a player quitting the game. */
+    private void onQuitGame() {
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Concede the game? You will be permanently removed from play.",
-                "Concede", JOptionPane.YES_NO_OPTION);
+                "Quit the game? You will be removed from play.",
+                "Quit Game", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             stopTimers();
             String playerName = currentSession.getCurrentPlayer().getName();
-            currentSession.concede();
-            statusLabel.setText(playerName + " has conceded.");
+            currentSession.playerQuitsGame();
+            statusLabel.setText(playerName + " quit the game.");
             rebuildScoreTable();
             afterTurn();
         }
     }
 
-    /** Handles shake-board button. */
+    /** Handles board regeneration. */
     private void onShakeBoard() {
         int confirm = JOptionPane.showConfirmDialog(this,
                 "Shake up the board? All words played this round will be cleared.",
@@ -716,13 +705,13 @@ public class BoggleGUI extends JFrame {
         }
     }
 
-    /** Called after any completed turn (valid word, pass, or concede). */
+    /** Runs checks after a completed turn. */
     private void afterTurn() {
         updateRoundLabel();
         boardPanel.clearHighlights();
 
-        // Per-phase early-end check (e.g. AI concedes in Phase 2/4)
-        if (currentSession.isGameOverEarly()) {
+        // Check phase-specific end rules.
+        if (currentSession.shouldGameEndNow()) {
             endGame();
             return;
         }
@@ -733,11 +722,11 @@ public class BoggleGUI extends JFrame {
         }
     }
 
-    /** Restarts the 15-second timer for the same player (invalid entry). */
+    /** Restarts the timer after an invalid word. */
     private void restartTimerForSameTurn() {
         timeLeft = 15;
         timerLabel.setText(String.valueOf(timeLeft));
-        timerLabel.setForeground(new Color(255, 180, 50));
+        timerLabel.setForeground(Color.BLACK);
         countdownTimer = new javax.swing.Timer(1000, e -> tickTimer());
         countdownTimer.start();
         wordInput.selectAll();
@@ -752,20 +741,19 @@ public class BoggleGUI extends JFrame {
         setInputEnabled(false);
 
         Player winner = currentSession.getRoundWinner();
-        StringBuilder sb = new StringBuilder("Round ")
-            .append(currentSession.getCurrentRound())
-            .append(" over!\n\nScores this round:\n");
-        for (Player p : currentSession.getPlayers()) {
-            sb.append("  ").append(p.getName())
-              .append(": ").append(p.getRoundScore()).append(" pts\n");
+        String message = "Round " + currentSession.getCurrentRound() + " over!\n\nScores this round:\n";
+        Player[] players = currentSession.getPlayers();
+        for (int i = 0; i < players.length; i++) {
+            message = message + "  " + players[i].getName() + ": "
+                    + players[i].getRoundScore() + " pts\n";
         }
-        sb.append("\nRound winner: ").append(winner.getName()).append("!");
+        message = message + "\nRound winner: " + winner.getName() + "!";
 
         if (currentSession.isGameOver()) {
             endGame();
         } else {
             int choice = JOptionPane.showOptionDialog(this,
-                    sb.toString(), "Round Over",
+                    message, "Round Over",
                     JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null,
                     new String[]{"Next Round", "End Game"}, "Next Round");
 
@@ -788,15 +776,16 @@ public class BoggleGUI extends JFrame {
         setInputEnabled(false);
 
         Player winner = currentSession.getGameWinner();
-        StringBuilder sb = new StringBuilder("Game Over!\n\nFinal Scores:\n");
-        for (Player p : currentSession.getPlayers()) {
-            sb.append("  ").append(p.getName())
-              .append(": ").append(p.getTotalScore()).append(" pts\n");
+        String message = "Game Over!\n\nFinal Scores:\n";
+        Player[] players = currentSession.getPlayers();
+        for (int i = 0; i < players.length; i++) {
+            message = message + "  " + players[i].getName() + ": "
+                    + players[i].getTotalScore() + " pts\n";
         }
-        sb.append("\nWinner: ").append(winner.getName()).append("!");
+        message = message + "\nWinner: " + winner.getName() + "!";
 
         int choice = JOptionPane.showOptionDialog(this,
-                sb.toString(), "Game Over",
+                message, "Game Over",
                 JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null,
                 new String[]{"Play Again", "Main Menu"}, "Main Menu");
 
@@ -818,9 +807,10 @@ public class BoggleGUI extends JFrame {
 
     private void rebuildScoreTable() {
         scoreTableModel.setRowCount(0);
-        for (Player p : currentSession.getPlayers()) {
+        Player[] players = currentSession.getPlayers();
+        for (int i = 0; i < players.length; i++) {
             scoreTableModel.addRow(new Object[]{
-                p.getName(), p.getRoundScore(), p.getTotalScore()
+                players[i].getName(), players[i].getRoundScore(), players[i].getTotalScore()
             });
         }
     }
@@ -835,7 +825,7 @@ public class BoggleGUI extends JFrame {
         wordInput.setEnabled(enabled);
         submitButton.setEnabled(enabled);
         passButton.setEnabled(enabled);
-        concedeButton.setEnabled(enabled);
+        quitButton.setEnabled(enabled);
     }
 
     private void stopTimers() {
@@ -850,7 +840,6 @@ public class BoggleGUI extends JFrame {
     private JTextField addTextFieldRow(String labelText, String defaultValue) {
         JPanel row = labeledRow(labelText);
         JTextField field = new JTextField(defaultValue, 16);
-        styleTextField(field);
         row.add(field);
         setupFieldsPanel.add(row);
         return field;
@@ -909,41 +898,39 @@ public class BoggleGUI extends JFrame {
         return lbl;
     }
 
-    private JButton styledButton(String text) {
+    private JButton makeButton(String text) {
         JButton btn = new JButton(text);
-        btn.setFont(BOLD_FONT);
-        btn.setBackground(ACCENT);
-        btn.setForeground(TEXT_MAIN);
-        btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return btn;
     }
 
-    private void styleTextField(JTextField field) {
-        field.setBackground(BG_PANEL);
-        field.setForeground(TEXT_MAIN);
-        field.setCaretColor(TEXT_MAIN);
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(ACCENT),
-                BorderFactory.createEmptyBorder(4, 6, 4, 6)));
-        field.setFont(BODY_FONT);
-    }
-
-    /**
-     * Returns the name if non-empty, otherwise returns the fallback string.
-     * Prevents blank player names from reaching the game session.
-     * @param name     the text entered by the user
-     * @param fallback default name to use when name is null or blank
-     * @return a guaranteed non-empty display name
-     */
+    /** Returns a fallback when the entered name is blank. */
     private static String emptyFallbackName(String name, String fallback) {
-        return (name == null || name.isEmpty()) ? fallback : name;
+        if (name == null) {
+            return fallback;
+        } else if (name.length() == 0) {
+            return fallback;
+        } else {
+            return name;
+        }
     }
 
-    private void styleScrollPane(JScrollPane pane) {
-        pane.setBackground(BG_PANEL);
-        pane.setBorder(BorderFactory.createLineBorder(ACCENT));
-        pane.getViewport().setBackground(BG_PANEL);
+    private String getBlankAsNull(String text) {
+        if (text.length() == 0) {
+            return null;
+        } else {
+            return text;
+        }
     }
+
+    private int getSelectedDifficulty(JComboBox<String> combo) {
+        String selected = (String) combo.getSelectedItem();
+        if ("BEGINNER".equals(selected)) {
+            return AIPlayer.BEGINNER;
+        } else if ("MEDIUM".equals(selected)) {
+            return AIPlayer.MEDIUM;
+        } else {
+            return AIPlayer.SMART;
+        }
+    }
+
 }

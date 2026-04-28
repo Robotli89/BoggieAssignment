@@ -10,7 +10,6 @@ package BoggleAssignment;
  *              Boggle Deluxe configuration. Each die has 6 letter faces.
  *              Dice are shuffled and rolled to produce a random board.
  */
-import java.util.Arrays;
 import java.util.Random;
 
 public class BoggleBoard {
@@ -26,7 +25,7 @@ public class BoggleBoard {
         "FIPRSY", "GORRVW", "HIPRRY", "NOOTUW", "OOOTTU"
     };
 
-    /** Board dimension (5 for a standard 5x5 Boggle board) */
+    /** Standard board dimension. */
     public static final int SIZE = 5;
 
     private char[][] board;
@@ -36,17 +35,14 @@ public class BoggleBoard {
     // Constructors
     // ---------------------------------------------------------------
 
-    /** Creates a board with a new random layout. */
+    /** Creates a random board. */
     public BoggleBoard() {
         random = new Random();
         board  = new char[SIZE][SIZE];
         generateBoard();
     }
 
-    /**
-     * Creates a board with a fixed seed (useful for Phase 5 reproducibility).
-     * @param seed random seed value
-     */
+    /** Creates a random board from a fixed seed. */
     public BoggleBoard(long seed) {
         random = new Random(seed);
         board  = new char[SIZE][SIZE];
@@ -57,16 +53,15 @@ public class BoggleBoard {
     // Board generation
     // ---------------------------------------------------------------
 
-    /**
-     * Generates a new random board.
-     * Steps: randomly swap the 25 dice, then roll each die by picking
-     * one random face. Simulates physically shaking and placing the tray.
-     */
+    /** Shuffles the dice and rolls one face from each die. */
     public void generateBoard() {
-        // Copy dice so we can shuffle without modifying the original array
-        String[] shuffledDice = Arrays.copyOf(DICE, DICE.length);
+        // Copy dice before shuffling.
+        String[] shuffledDice = new String[DICE.length];
+        for (int i = 0; i < DICE.length; i++) {
+            shuffledDice[i] = DICE[i];
+        }
 
-        // Randomly swap dice positions.
+        // Shuffle dice positions.
         for (int i = 0; i < shuffledDice.length; i++) {
             int j = random.nextInt(shuffledDice.length);
             String temp      = shuffledDice[i];
@@ -74,7 +69,7 @@ public class BoggleBoard {
             shuffledDice[j]  = temp;
         }
 
-        // Roll each die and place it in the 5x5 grid
+        // Roll each die into the grid.
         int index = 0;
         for (int row = 0; row < SIZE; row++) {
             for (int col = 0; col < SIZE; col++) {
@@ -84,11 +79,7 @@ public class BoggleBoard {
         }
     }
 
-    /**
-     * Directly sets the board from a 2D char array.
-     * Used in Phase 5 when the board is loaded from a contest file.
-     * @param newBoard a SIZE x SIZE char array of uppercase letters
-     */
+    /** Copies a supplied board into this board. */
     public void setBoard(char[][] newBoard) {
         for (int r = 0; r < SIZE; r++) {
             for (int c = 0; c < SIZE; c++) {
@@ -101,15 +92,10 @@ public class BoggleBoard {
     // Getters
     // ---------------------------------------------------------------
 
-    /** @return the current 5x5 board as a char array */
+    /** Current board array. */
     public char[][] getBoard() { return board; }
 
-    /**
-     * Returns a deep copy of the given board.
-     * Useful for Phase 5 when a contest board must be preserved exactly.
-     * @param original source board to copy
-     * @return new SIZE x SIZE char array with the same contents
-     */
+    /** Returns a deep copy of a board array. */
     public static char[][] copyBoard(char[][] original) {
         char[][] copy = new char[original.length][original[0].length];
         for (int r = 0; r < original.length; r++) {
@@ -120,24 +106,20 @@ public class BoggleBoard {
         return copy;
     }
 
-    /** @return the board dimension (always 5) */
+    /** Board dimension. */
     public int getSize() { return SIZE; }
 
-    /**
-     * Returns a formatted string representation of the board.
-     * @return multi-line board display string
-     */
-    @Override
+    /** Builds the text-mode board display. */
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("+---+---+---+---+---+\n");
+        String text = "";
+        text = text + "+---+---+---+---+---+\n";
         for (int row = 0; row < SIZE; row++) {
-            sb.append("| ");
+            text = text + "| ";
             for (int col = 0; col < SIZE; col++) {
-                sb.append(board[row][col]).append(" | ");
+                text = text + board[row][col] + " | ";
             }
-            sb.append("\n+---+---+---+---+---+\n");
+            text = text + "\n+---+---+---+---+---+\n";
         }
-        return sb.toString();
+        return text;
     }
 }

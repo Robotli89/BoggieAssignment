@@ -13,12 +13,10 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 public class Dictionary {
 
-    private String[] words;   // sorted array of valid words (uppercase)
+    private String[] words;   // sorted uppercase words
     private int      wordCount;
     private int      minWordLength;
 
@@ -26,12 +24,7 @@ public class Dictionary {
     // Constructor
     // ---------------------------------------------------------------
 
-    /**
-     * Loads the dictionary from the given file.
-     * Only words at or above minWordLength and containing only A-Z are kept.
-     * @param filename      path to the word list file
-     * @param minWordLength minimum letters required for a valid word
-     */
+    /** Loads valid words from the dictionary file. */
     public Dictionary(String filename, int minLen) {
         minWordLength = minLen;
         loadDictionary(filename);
@@ -41,82 +34,110 @@ public class Dictionary {
     // Loading
     // ---------------------------------------------------------------
 
-    /**
-     * Reads words from the file, filters by length and alphabet, then sorts.
-     * @param filename path to wordlist.txt
-     */
+    /** Reads, filters, and sorts dictionary words. */
     private void loadDictionary(String filename) {
-        List<String> list = new ArrayList<>();
+        ArrayList<String> list = new ArrayList<String>();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(filename));
             String line;
             while ((line = br.readLine()) != null) {
                 line = line.trim().toUpperCase();
-                // Keep only pure alphabetic words at or above minimum length
-                if (line.length() >= minWordLength && line.matches("[A-Z]+")) {
+                // Keep alphabetic words that meet the length limit.
+                if (line.length() >= minWordLength && isLettersOnly(line)) {
                     list.add(line);
                 }
             }
+            br.close();
         } catch (IOException e) {
             System.err.println("Warning: Could not load dictionary \"" + filename
                     + "\": " + e.getMessage());
             System.err.println("Word validation will fail for all entries.");
         }
 
-        words     = list.toArray(new String[0]);
-        Arrays.sort(words);        // sort for binary search
+        words = new String[list.size()];
+        for (int i = 0; i < list.size(); i++) {
+            words[i] = list.get(i);
+        }
+        insertionSort(words);
         wordCount = words.length;
         System.out.println("Dictionary loaded: " + wordCount + " words (min length = "
                 + minWordLength + ").");
+    }
+
+    private boolean isLettersOnly(String word) {
+        for (int i = 0; i < word.length(); i++) {
+            char letter = word.charAt(i);
+            if (letter < 'A' || letter > 'Z') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void insertionSort(String[] array) {
+        for (int i = 1; i < array.length; i++) {
+            String current = array[i];
+            int j = i - 1;
+
+            while (j >= 0 && array[j].compareTo(current) > 0) {
+                array[j + 1] = array[j];
+                j--;
+            }
+
+            array[j + 1] = current;
+        }
     }
 
     // ---------------------------------------------------------------
     // Word lookup — recursive binary search
     // ---------------------------------------------------------------
 
-    /**
-     * Checks whether the given word exists in the dictionary.
-     * Uses recursive binary search for O(log n) performance.
-     * @param word the word to look up (case-insensitive)
-     * @return true if the word is a valid English word
-     */
+    /** Checks if a word exists in the sorted dictionary. */
     public boolean isValidWord(String word) {
-        if (word == null || word.length() < minWordLength) return false;
+        if (word == null || word.length() < minWordLength) {
+            return false;
+        }
         return binarySearch(word.toUpperCase(), 0, wordCount - 1);
     }
 
-    /**
-     * Recursive binary search on the sorted words array.
-     * @param target word to find
-     * @param low    lower bound index (inclusive)
-     * @param high   upper bound index (inclusive)
-     * @return true if target is found
-     */
+    /** Recursive binary search over the sorted word array. */
     private boolean binarySearch(String target, int low, int high) {
-        if (low > high) return false;                    // not found
+        if (low > high) {
+            return false;
+        }
         int mid = (low + high) / 2;
         int cmp = words[mid].compareTo(target);
-        if (cmp == 0) return true;                       // found
-        if (cmp > 0)  return binarySearch(target, low,     mid - 1); // search left
-        return              binarySearch(target, mid + 1, high);     // search right
+        if (cmp == 0) {
+            return true;
+        } else if (cmp > 0) {
+            return binarySearch(target, low, mid - 1);
+        } else {
+            return binarySearch(target, mid + 1, high);
+        }
     }
 
     // ---------------------------------------------------------------
     // Getters / Setters
     // ---------------------------------------------------------------
 
-    /** @return the sorted words array (do not modify) */
-    public String[] getAllWords()     { return words; }
+    /** Sorted word array. */
+    public String[] getAllWords() {
+        return words;
+    }
 
-    /** @return the current minimum word length setting */
-    public int getMinWordLength()     { return minWordLength; }
+    /** Current minimum word length. */
+    public int getMinWordLength() {
+        return minWordLength;
+    }
 
-    /**
-     * Updates the minimum word length filter.
-     * @param min new minimum word length (e.g. 3, 4, or 5)
-     */
-    public void setMinWordLength(int min) { minWordLength = min; }
+    /** Updates the minimum word length. */
+    public void setMinWordLength(int min) {
+        minWordLength = min;
+    }
 
-    /** @return total number of words loaded */
-    public int getWordCount()         { return wordCount; }
+    /** Loaded word count. */
+    public int getWordCount() {
+        return wordCount;
+    }
 }

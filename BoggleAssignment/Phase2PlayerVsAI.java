@@ -18,56 +18,52 @@ public class Phase2PlayerVsAI extends GameSession {
     // Constructor
     // ---------------------------------------------------------------
 
-    /**
-     * Creates a Phase 2 (human vs AI) game session.
-     *
-     * @param playerName      human player's display name
-     * @param aiDifficulty    AI difficulty level
-     * @param playerGoesFirst if true the human takes the first turn; AI goes first otherwise
-     * @param totalRounds     how many rounds to play
-     * @param pointTarget     first to reach this score wins (0 = off)
-     * @param minWordLength   minimum word length
-     * @param dictionaryPath  path to wordlist.txt
-     */
+    /** Creates a human-vs-AI game. */
     public Phase2PlayerVsAI(String playerName,
-                             AIPlayer.Difficulty aiDifficulty,
+                             int aiDifficulty,
                              boolean playerGoesFirst,
                              int totalRounds, int pointTarget,
                              int minWordLength, String dictionaryPath) {
-        super(totalRounds, pointTarget, minWordLength, dictionaryPath);
+        setUpGameSession(totalRounds, pointTarget, minWordLength, dictionaryPath);
 
-        // Create one human and one AI player
+        // Build one human and one AI player.
         Player   human = new Player(playerName);
-        AIPlayer ai    = new AIPlayer("AI (" + aiDifficulty + ")", aiDifficulty, dictionary);
+        AIPlayer ai    = new AIPlayer("AI (" + AIPlayer.getDifficultyName(aiDifficulty) + ")", aiDifficulty, dictionary);
 
         players    = new Player[2];
-        players[0] = playerGoesFirst ? human : ai;
-        players[1] = playerGoesFirst ? ai    : human;
+        if (playerGoesFirst) {
+            players[0] = human;
+            players[1] = ai;
+        } else {
+            players[0] = ai;
+            players[1] = human;
+        }
     }
 
     // ---------------------------------------------------------------
     // Per-phase end condition (from shouldEndGame logic)
     // ---------------------------------------------------------------
 
-    /**
-     * Phase 2 early-end conditions:
-     *   - AI concedes → game over immediately (AI exhausted all words)
-     *   - Human concedes AND human score is behind AI → game over
-     *   - Both concede → game over (base case)
-     */
-    @Override
-    public boolean isGameOverEarly() {
+    /** Applies Phase 2 early game-end rules. */
+    public boolean shouldGameEndNow() {
         Player ai    = null;
         Player human = null;
-        for (Player p : players) {
-            if (p.isAI()) ai    = p;
-            else           human = p;
+        for (int i = 0; i < players.length; i++) {
+            if (players[i].isAI()) {
+                ai = players[i];
+            } else {
+                human = players[i];
+            }
         }
-        // AI concedes → game over
-        if (ai != null && ai.hasConceded()) return true;
-        // Human concedes while losing → game over
-        if (human != null && human.hasConceded()
-                && ai != null && human.getTotalScore() < ai.getTotalScore()) return true;
-        return super.isGameOverEarly();
+        // End when the AI has no move.
+        if (ai != null && ai.didPlayerQuitGame()) {
+            return true;
+        }
+        // End when the human quits while behind.
+        if (human != null && human.didPlayerQuitGame()
+                && ai != null && human.getTotalScore() < ai.getTotalScore()) {
+            return true;
+        }
+        return noActivePlayersLeft();
     }
 }

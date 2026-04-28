@@ -11,7 +11,6 @@ package BoggleAssignment;
  */
 import java.util.Random;
 import java.util.Scanner;
-import javax.swing.SwingUtilities;
 
 public class Main {
 
@@ -24,16 +23,16 @@ public class Main {
         System.out.print("Enter 1 or 2: ");
 
         String choice = input.nextLine().trim();
-        if (choice.equals("1")) launchGUI();
-        else runTextVersion();
+        if (choice.equals("1")) {
+            launchGUI();
+        } else {
+            runTextVersion();
+        }
     }
 
     private static void launchGUI() {
-        // Run GUI on the Event Dispatch Thread (EDT) for thread safety.
-        SwingUtilities.invokeLater(() -> {
-            BoggleGUI gui = new BoggleGUI();
-            gui.setVisible(true);
-        });
+        BoggleGUI gui = new BoggleGUI();
+        gui.setVisible(true);
     }
 
     private static void runTextVersion() {
@@ -49,58 +48,57 @@ public class Main {
         int target = askInt("Point target (0 = off): ", 0, 500);
         int minLength = askInt("Minimum word length: ", 2, 8);
         String dictionaryPath = askString("Dictionary file (press Enter for wordlist.txt): ");
-        if (dictionaryPath.equals("")) dictionaryPath = "wordlist.txt";
+        if (dictionaryPath.equals("")) {
+            dictionaryPath = "wordlist.txt";
+        }
 
         GameSession game;
 
-        try {
-            if (phase == 1) {
-                String p1 = askName("Player 1 name: ", "Player 1");
-                String p2 = askName("Player 2 name: ", "Player 2");
-                game = new Phase1PlayerVsPlayer(p1, p2, rounds, target, minLength, dictionaryPath);
-            } else if (phase == 2) {
-                String player = askName("Your name: ", "Player 1");
-                AIPlayer.Difficulty difficulty = askDifficulty("AI difficulty");
-                boolean playerFirst = askYesNo("Should the player go first? (y/n): ");
-                game = new Phase2PlayerVsAI(player, difficulty, playerFirst, rounds, target, minLength, dictionaryPath);
-            } else if (phase == 3) {
-                int count = askInt("Number of players: ", 2, 6);
-                String[] names = new String[count];
-                for (int i = 0; i < count; i++) {
-                    names[i] = askName("Player " + (i + 1) + " name: ", "Player " + (i + 1));
-                }
-                game = new Phase3MultiPlayer(names, rounds, target, minLength, dictionaryPath);
-            } else if (phase == 4) {
-                int count = askInt("Number of human players: ", 1, 5);
-                String[] names = new String[count];
-                for (int i = 0; i < count; i++) {
-                    names[i] = askName("Player " + (i + 1) + " name: ", "Player " + (i + 1));
-                }
-                AIPlayer.Difficulty difficulty = askDifficulty("AI difficulty");
-                int aiPosition = askInt("AI position (1 = first): ", 1, count + 1) - 1;
-                game = new Phase4MultiPlayerAI(names, difficulty, aiPosition, rounds, target, minLength, dictionaryPath);
-            } else {
-                AIPlayer.Difficulty ai1 = askDifficulty("AI 1 difficulty");
-                AIPlayer.Difficulty ai2 = askDifficulty("AI 2 difficulty");
-                boolean ai1First = new Random().nextBoolean();
-                String boardFile = askString("Board file (press Enter for random): ");
-                if (boardFile.equals("")) boardFile = null;
-                game = new Phase5AIvsAI(ai1, ai2, ai1First, rounds, target, minLength, dictionaryPath, boardFile);
+        if (phase == 1) {
+            String p1 = askName("Player 1 name: ", "Player 1");
+            String p2 = askName("Player 2 name: ", "Player 2");
+            game = new Phase1PlayerVsPlayer(p1, p2, rounds, target, minLength, dictionaryPath);
+        } else if (phase == 2) {
+            String player = askName("Your name: ", "Player 1");
+            int difficulty = askDifficulty("AI difficulty");
+            boolean playerFirst = askYesNo("Should the player go first? (y/n): ");
+            game = new Phase2PlayerVsAI(player, difficulty, playerFirst, rounds, target, minLength, dictionaryPath);
+        } else if (phase == 3) {
+            int count = askInt("Number of players: ", 2, 6);
+            String[] names = new String[count];
+            for (int i = 0; i < count; i++) {
+                names[i] = askName("Player " + (i + 1) + " name: ", "Player " + (i + 1));
             }
-        } catch (Exception e) {
-            System.out.println("Could not start game: " + e.getMessage());
-            return;
+            game = new Phase3MultiPlayer(names, rounds, target, minLength, dictionaryPath);
+        } else if (phase == 4) {
+            int count = askInt("Number of human players: ", 1, 5);
+            String[] names = new String[count];
+            for (int i = 0; i < count; i++) {
+                names[i] = askName("Player " + (i + 1) + " name: ", "Player " + (i + 1));
+            }
+            int difficulty = askDifficulty("AI difficulty");
+            int aiPosition = askInt("AI position (1 = first): ", 1, count + 1) - 1;
+            game = new Phase4MultiPlayerAI(names, difficulty, aiPosition, rounds, target, minLength, dictionaryPath);
+        } else {
+            int ai1 = askDifficulty("AI 1 difficulty");
+            int ai2 = askDifficulty("AI 2 difficulty");
+            boolean ai1First = new Random().nextBoolean();
+            String boardFile = askString("Board file (press Enter for random): ");
+            if (boardFile.equals("")) {
+                boardFile = null;
+            }
+            game = new Phase5AIvsAI(ai1, ai2, ai1First, rounds, target, minLength, dictionaryPath, boardFile);
         }
 
         playTextGame(game);
     }
 
     private static void playTextGame(GameSession game) {
-        while (game.isGameOver() == false && game.isGameOverEarly() == false) {
+        while (game.isGameOver() == false && game.shouldGameEndNow() == false) {
             System.out.println("\nRound " + game.getCurrentRound() + " of " + game.getTotalRounds());
             System.out.println(game.getBoggleBoard());
 
-            while (game.isRoundOver() == false && game.isGameOverEarly() == false) {
+            while (game.isRoundOver() == false && game.shouldGameEndNow() == false) {
                 Player current = game.getCurrentPlayer();
                 printScores(game);
                 System.out.println("Current player: " + current.getName());
@@ -108,14 +106,14 @@ public class Main {
                 if (current.isAI()) {
                     String move = game.getAIMove();
                     if (move == null) {
-                        game.concede();
-                        System.out.println(current.getName() + " concedes.");
+                        game.playerQuitsGame();
+                        System.out.println(current.getName() + " quits because no words were found.");
                     } else {
                         game.submitWord(move);
                         System.out.println(current.getName() + " plays " + move + ".");
                     }
                 } else {
-                    System.out.print("Enter word, PASS, CONCEDE, or SHAKE: ");
+                    System.out.print("Enter word, PASS, QUIT, or SHAKE: ");
                     String move = input.nextLine().trim();
                     handleHumanMove(game, move);
                 }
@@ -123,7 +121,7 @@ public class Main {
             }
 
             System.out.println("Round over. Winner: " + game.getRoundWinner().getName());
-            if (game.getCurrentRound() < game.getTotalRounds() && game.isGameOverEarly() == false) {
+            if (game.getCurrentRound() < game.getTotalRounds() && game.shouldGameEndNow() == false) {
                 game.nextRound();
             } else {
                 break;
@@ -135,13 +133,15 @@ public class Main {
     }
 
     private static void handleHumanMove(GameSession game, String move) {
-        if (move.equalsIgnoreCase("PASS")) {
+        String moveUpper = move.toUpperCase();
+
+        if (moveUpper.equals("PASS")) {
             game.pass();
             System.out.println("Passed.");
-        } else if (move.equalsIgnoreCase("CONCEDE")) {
-            game.concede();
-            System.out.println("Conceded.");
-        } else if (move.equalsIgnoreCase("SHAKE")) {
+        } else if (moveUpper.equals("QUIT")) {
+            game.playerQuitsGame();
+            System.out.println("You quit the game.");
+        } else if (moveUpper.equals("SHAKE")) {
             game.shakeUpBoard();
             System.out.println(game.getBoggleBoard());
         } else {
@@ -162,8 +162,9 @@ public class Main {
 
     private static void printScores(GameSession game) {
         System.out.println("Scores:");
-        for (Player p : game.getPlayers()) {
-            System.out.println(p.getName() + ": " + p.getTotalScore());
+        Player[] players = game.getPlayers();
+        for (int i = 0; i < players.length; i++) {
+            System.out.println(players[i].getName() + ": " + players[i].getTotalScore());
         }
     }
 
@@ -174,41 +175,56 @@ public class Main {
 
     private static String askName(String question, String defaultName) {
         String name = askString(question);
-        if (name.equals("")) return defaultName;
-        return name;
+        if (name.equals("")) {
+            return defaultName;
+        } else {
+            return name;
+        }
     }
 
     private static int askInt(String question, int min, int max) {
-        while (true) {
-            System.out.print(question);
-            try {
-                int number = Integer.parseInt(input.nextLine().trim());
-                if (number >= min && number <= max) return number;
-            } catch (NumberFormatException e) {
-                // Ask again below.
-            }
+        int number;
+
+        System.out.print(question);
+        number = input.nextInt();
+        input.nextLine();
+
+        while (number < min || number > max) {
             System.out.println("Enter a number from " + min + " to " + max + ".");
+            System.out.print(question);
+            number = input.nextInt();
+            input.nextLine();
         }
+
+        return number;
     }
 
     private static boolean askYesNo(String question) {
-        while (true) {
-            String answer = askString(question);
-            if (answer.equalsIgnoreCase("y") || answer.equalsIgnoreCase("yes")) return true;
-            if (answer.equalsIgnoreCase("n") || answer.equalsIgnoreCase("no")) return false;
-            System.out.println("Enter y or n.");
+        String answer = askString(question);
+        answer = answer.toUpperCase();
+
+        if (answer.equals("Y")) {
+            return true;
+        } else if (answer.equals("YES")) {
+            return true;
+        } else {
+            return false;
         }
     }
 
-    private static AIPlayer.Difficulty askDifficulty(String question) {
+    private static int askDifficulty(String question) {
         System.out.println(question + ":");
         System.out.println("1. Beginner");
         System.out.println("2. Medium");
         System.out.println("3. Smart");
         int choice = askInt("Choose difficulty: ", 1, 3);
 
-        if (choice == 1) return AIPlayer.Difficulty.BEGINNER;
-        if (choice == 2) return AIPlayer.Difficulty.MEDIUM;
-        return AIPlayer.Difficulty.SMART;
+        if (choice == 1) {
+            return AIPlayer.BEGINNER;
+        } else if (choice == 2) {
+            return AIPlayer.MEDIUM;
+        } else {
+            return AIPlayer.SMART;
+        }
     }
 }

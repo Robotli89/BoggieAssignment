@@ -10,8 +10,8 @@ package BoggleAssignment;
  *              Manages: board state, dictionary, word validation, player turns,
  *              scoring, round/game end conditions, and file logging.
  *
- *              Each Phase subclass calls super() to initialize this engine and
- *              then sets up the players[] array according to the phase rules.
+ *              Each Phase subclass sets up this shared engine, then creates
+ *              the players[] array according to the phase rules.
  */
 import java.util.ArrayList;
 
@@ -28,45 +28,38 @@ public class GameSession {
 
     // ---------------------------------------------------------------
     // Shared game state
-    // public: Phase subclasses need to read/write these directly
-    // private: only used inside GameSession
+    // Phase classes set public fields during setup.
     // ---------------------------------------------------------------
 
     public  BoggleBoard   boggleBoard;
     public  Dictionary    dictionary;
-    public  WordValidator wordValidator;
+    public  WordValidator wordChecker;
     public  Player[]      players;
 
     private int           currentPlayerIndex;
     private int           currentRound;
     private int           totalRounds;
-    private int           pointTarget;        // 0 = round-count wins only
+    private int           pointTarget;        // 0 disables target score
     private int           minWordLength;
-    private ArrayList<String> usedWordsThisRound; // all words played in this round
-    private int           consecutivePasses;  // resets when any valid word is played
+    private ArrayList<String> wordsUsedThisRound; // round word cache
+    private int           consecutivePasses;  // active-player pass counter
 
     // ---------------------------------------------------------------
     // Constructor
     // ---------------------------------------------------------------
 
-    /**
-     * Initializes the shared game engine.
-     * Subclasses must set players[] after calling super().
-     *
-     * @param rounds    number of rounds to play
-     * @param target    first player to reach this total score wins (0 = off)
-     * @param minLen    minimum letters required per word
-     * @param dictPath  path to wordlist.txt
-     */
-    public GameSession(int rounds, int target, int minLen, String dictPath) {
+    public GameSession() {
+    }
+
+    public void setUpGameSession(int rounds, int target, int minLen, String dictPath) {
         totalRounds   = rounds;
         pointTarget   = target;
         minWordLength = minLen;
 
         boggleBoard        = new BoggleBoard();
         dictionary         = new Dictionary(dictPath, minLen);
-        wordValidator      = new WordValidator(boggleBoard.getBoard());
-        usedWordsThisRound = new ArrayList<>();
+        wordChecker        = new WordValidator(boggleBoard.getBoard());
+        wordsUsedThisRound = new ArrayList<>();
         currentPlayerIndex = 0;
         currentRound       = 1;
         consecutivePasses  = 0;
@@ -76,145 +69,136 @@ public class GameSession {
     // Core gameplay methods
     // ---------------------------------------------------------------
 
-    /**
-     * Submits a word on behalf of the current player.
-     * Performs four checks in order:
-     *   1. Minimum word length
-     *   2. Word not already used this round (by any player)
-     *   3. Word can be formed on the board
-     *   4. Word exists in the dictionary
-     * On success, awards points equal to word length and advances the turn.
-     *
-     * @param word the word the player wishes to play
-     * @return a RESULT_* constant describing the outcome
-     */
+    /** Validates the current player's word, scores it, then advances the turn. */
     public String submitWord(String word) {
-        if (word == null) return RESULT_TOO_SHORT;
+        if (word == null) {
+            return RESULT_TOO_SHORT;
+        }
         word = word.trim().toUpperCase();
 
         Player current = getCurrentPlayer();
 
-        // Check 1: minimum word length
-        if (word.length() < minWordLength) return RESULT_TOO_SHORT;
+        // Enforce minimum length.
+        if (word.length() < minWordLength) {
+            return RESULT_TOO_SHORT;
+        }
 
-        // Check 2: not already played this round
-        if (wasWordUsedThisRound(word)) return RESULT_ALREADY_USED;
+        // Block repeated round words.
+        if (wasWordUsedThisRound(word)) {
+            return RESULT_ALREADY_USED;
+        }
 
-        // Check 3: word exists on the board (DFS)
-        if (wordValidator.isWordOnBoard(word) == false) return RESULT_NOT_ON_BOARD;
+        // Check board path with DFS.
+        if (wordChecker.isWordOnBoard(word) == false) {
+            return RESULT_NOT_ON_BOARD;
+        }
 
-        // Check 4: valid English word (binary search)
-        if (dictionary.isValidWord(word) == false) return RESULT_NOT_IN_DICT;
+        // Check dictionary with binary search.
+        if (dictionary.isValidWord(word) == false) {
+            return RESULT_NOT_IN_DICT;
+        }
 
-        // ---- Word accepted ----
-        int points = word.length();  // score = number of letters
+        // Score valid words by length.
+        int points = word.length();
         current.addScore(points);
         current.addWord(word);
-        usedWordsThisRound.add(word);
+        wordsUsedThisRound.add(word);
         consecutivePasses = 0;
 
         advancePlayer();
         return RESULT_VALID;
     }
 
-    /**
-     * Records a pass for the current player and advances the turn.
-     * The round ends when ALL active (non-conceded) players pass consecutively.
-     */
+    /** Records a pass and moves to the next active player. */
     public void pass() {
         getCurrentPlayer().pass();
         consecutivePasses++;
         advancePlayer();
     }
 
-    /**
-     * Permanently removes the current player from the game (concede).
-     * Unlike a pass, concede does not count toward the consecutive-pass total —
-     * the remaining active players still each need to pass to end the round.
-     * After conceding, check isGameOverEarly() to see if the game should end.
-     */
-    public void concede() {
-        getCurrentPlayer().concede();
+    /** Marks the current player as quit and advances the turn. */
+    public void playerQuitsGame() {
+        getCurrentPlayer().quitGame();
         advancePlayer();
     }
 
-    /**
-     * Advances the turn to the next non-conceded player in circular order.
-     */
+    /** Skips quit players while moving to the next turn. */
     private void advancePlayer() {
         int steps = 0;
         do {
             currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
             steps++;
-        } while (players[currentPlayerIndex].hasConceded() && steps < players.length);
+        } while (players[currentPlayerIndex].didPlayerQuitGame() && steps < players.length);
     }
 
     // ---------------------------------------------------------------
     // Round / game state queries
     // ---------------------------------------------------------------
 
-    /**
-     * @return true when all active (non-conceded) players have passed
-     *         consecutively, or when every player has conceded
-     */
+    /** Returns true when all active players pass in sequence. */
     public boolean isRoundOver() {
         int active = 0;
-        for (Player p : players) {
-            if (p.hasConceded() == false) active++;
+        for (int i = 0; i < players.length; i++) {
+            if (players[i].didPlayerQuitGame() == false) {
+                active++;
+            }
         }
-        return active == 0 || consecutivePasses >= active;
+        if (active == 0) {
+            return true;
+        } else if (consecutivePasses >= active) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    /**
-     * Checks per-phase early end conditions (e.g., AI concedes in Phase 2/4).
-     * Default: game ends early only when every player has conceded.
-     * Phase subclasses override this for additional end conditions.
-     *
-     * @return true if the game should end immediately
-     */
-    public boolean isGameOverEarly() {
-        // Sequential check: game ends when no active players remain
-        for (Player p : players) {
-            if (p.hasConceded() == false) return false;
+    /** Checks phase-specific early game-end rules. */
+    public boolean shouldGameEndNow() {
+        return noActivePlayersLeft();
+    }
+
+    public boolean noActivePlayersLeft() {
+        for (int i = 0; i < players.length; i++) {
+            if (players[i].didPlayerQuitGame() == false) {
+                return false;
+            }
         }
         return true;
     }
 
-    /**
-     * @return true when the game should end:
-     *         all rounds have been played, OR a player reached the point target
-     */
+    /** Returns true when rounds are done or a player reaches the point target. */
     public boolean isGameOver() {
-        if (currentRound > totalRounds) return true;
+        if (currentRound > totalRounds) {
+            return true;
+        }
         if (pointTarget > 0) {
-            for (Player p : players) {
-                if (p.getTotalScore() >= pointTarget) return true;
+            for (int i = 0; i < players.length; i++) {
+                if (players[i].getTotalScore() >= pointTarget) {
+                    return true;
+                }
             }
         }
         return false;
     }
 
-    /**
-     * Advances to the next round: generates a new board and resets round state.
-     */
+    /** Starts the next round with a fresh board and cleared round data. */
     public void nextRound() {
         currentRound++;
         boggleBoard.generateBoard();
-        wordValidator.setBoard(boggleBoard.getBoard());
-        usedWordsThisRound.clear();
+        wordChecker.setBoard(boggleBoard.getBoard());
+        wordsUsedThisRound.clear();
         consecutivePasses  = 0;
         currentPlayerIndex = 0;
-        for (Player p : players) p.resetForNewRound();
+        for (int i = 0; i < players.length; i++) {
+            players[i].resetForNewRound();
+        }
     }
 
-    /**
-     * Regenerates the board without advancing the round.
-     * Triggered when both players pass twice (extra feature).
-     */
+    /** Regenerates the board without changing the round number. */
     public void shakeUpBoard() {
         boggleBoard.generateBoard();
-        wordValidator.setBoard(boggleBoard.getBoard());
-        usedWordsThisRound.clear();
+        wordChecker.setBoard(boggleBoard.getBoard());
+        wordsUsedThisRound.clear();
         consecutivePasses = 0;
     }
 
@@ -222,24 +206,24 @@ public class GameSession {
     // Winner determination
     // ---------------------------------------------------------------
 
-    /**
-     * @return the player with the highest round score
-     */
+    /** Returns the player with the top round score. */
     public Player getRoundWinner() {
         Player best = players[0];
-        for (Player p : players) {
-            if (p.getRoundScore() > best.getRoundScore()) best = p;
+        for (int i = 0; i < players.length; i++) {
+            if (players[i].getRoundScore() > best.getRoundScore()) {
+                best = players[i];
+            }
         }
         return best;
     }
 
-    /**
-     * @return the player with the highest total score
-     */
+    /** Returns the player with the top total score. */
     public Player getGameWinner() {
         Player best = players[0];
-        for (Player p : players) {
-            if (p.getTotalScore() > best.getTotalScore()) best = p;
+        for (int i = 0; i < players.length; i++) {
+            if (players[i].getTotalScore() > best.getTotalScore()) {
+                best = players[i];
+            }
         }
         return best;
     }
@@ -248,70 +232,59 @@ public class GameSession {
     // AI support
     // ---------------------------------------------------------------
 
-    /**
-     * Returns the AI's chosen word for this turn, or null if the current
-     * player is human (or if the AI decides to pass).
-     * The GUI calls this when it detects an AI turn.
-     *
-     * @return word to play, or null for a pass
-     */
+    /** Returns the current AI move, or null for a human/no move. */
     public String getAIMove() {
         Player current = getCurrentPlayer();
-        if (current instanceof AIPlayer) {
-            return ((AIPlayer) current).getAIMove(
-                    boggleBoard.getBoard(), usedWordsThisRound);
+        if (current.isAI()) {
+            AIPlayer ai = (AIPlayer) current;
+            return ai.getAIMove(boggleBoard.getBoard(), wordsUsedThisRound);
         }
-        return null; // human turn — no auto-move
+        return null;
     }
 
     // ---------------------------------------------------------------
     // Getters / Setters
     // ---------------------------------------------------------------
 
-    /** @return the player whose turn it currently is */
+    /** Current turn player. */
     public Player getCurrentPlayer()            { return players[currentPlayerIndex]; }
 
-    /** @return all players in turn order */
+    /** Players in turn order. */
     public Player[] getPlayers()                { return players; }
 
-    /** @return the board manager */
+    /** Board manager. */
     public BoggleBoard getBoggleBoard()         { return boggleBoard; }
 
-    /** @return the dictionary */
+    /** Dictionary lookup service. */
     public Dictionary getDictionary()           { return dictionary; }
 
-    /** @return current round number (1-based) */
+    /** Current round number. */
     public int getCurrentRound()                { return currentRound; }
 
-    /** @return total number of rounds configured */
+    /** Configured round count. */
     public int getTotalRounds()                 { return totalRounds; }
 
-    /** @return the point target (0 if disabled) */
+    /** Target score, or 0 when disabled. */
     public int getPointTarget()                 { return pointTarget; }
 
-    /** @return all words played this round by any player */
-    public ArrayList<String> getUsedWordsThisRound()  { return usedWordsThisRound; }
+    /** Words used this round. */
+    public ArrayList<String> getWordsUsedThisRound()  { return wordsUsedThisRound; }
 
-    /** @return current minimum word length */
+    /** Minimum word length. */
     public int getMinWordLength()               { return minWordLength; }
 
-    /**
-     * Updates the minimum word length setting.
-     * @param min new minimum word length
-     */
+    /** Updates the minimum word length. */
     public void setMinWordLength(int min) {
         minWordLength = min;
         dictionary.setMinWordLength(min);
     }
 
-    /**
-     * Sequentially checks whether a word has already been played this round.
-     * @param word word to check
-     * @return true if the word is already in the list
-     */
+    /** Checks the round word cache for a duplicate. */
     private boolean wasWordUsedThisRound(String word) {
-        for (int i = 0; i < usedWordsThisRound.size(); i++) {
-            if (usedWordsThisRound.get(i).equalsIgnoreCase(word)) return true;
+        for (int i = 0; i < wordsUsedThisRound.size(); i++) {
+            if (wordsUsedThisRound.get(i).toUpperCase().equals(word.toUpperCase())) {
+                return true;
+            }
         }
         return false;
     }

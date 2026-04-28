@@ -6,9 +6,7 @@ package BoggleAssignment;
  * Course: ICS4U
  * Project: Boggle Game
  *
- * Description: Swing panel that renders the 5x5 Boggle board.
- *              Each cell is a styled JLabel.
- *              Supports highlighting cells to show a found word's path.
+ * Description: Swing panel that shows the 5x5 Boggle board.
  */
 import javax.swing.*;
 import java.awt.*;
@@ -20,11 +18,11 @@ public class BoardPanel extends JPanel {
     // ---------------------------------------------------------------
 
     private static final int   CELL_SIZE    = 72;
-    private static final Font  CELL_FONT    = new Font("Arial", Font.BOLD, 26);
-    private static final Color NORMAL_BG    = new Color(173, 216, 230);  // light blue
-    private static final Color HIGHLIGHT_BG = new Color(255, 215,   0);  // gold
-    private static final Color BORDER_COLOR = new Color( 70, 130, 180);  // steel blue
-    private static final Color TEXT_COLOR   = Color.DARK_GRAY;
+    private static final Font  CELL_FONT    = new Font("Dialog", Font.PLAIN, 24);
+    private static final Color NORMAL_BG    = Color.WHITE;
+    private static final Color HIGHLIGHT_BG = Color.YELLOW;
+    private static final Color BORDER_COLOR = Color.GRAY;
+    private static final Color TEXT_COLOR   = Color.BLACK;
 
     // ---------------------------------------------------------------
     // Fields
@@ -37,10 +35,7 @@ public class BoardPanel extends JPanel {
     // Constructor
     // ---------------------------------------------------------------
 
-    /**
-     * Creates an empty board panel for a board of the given dimension.
-     * @param size board dimension (5 for the standard Boggle board)
-     */
+    /** Creates an empty board panel. */
     public BoardPanel(int boardSize) {
         size  = boardSize;
         cells = new JLabel[boardSize][boardSize];
@@ -56,9 +51,7 @@ public class BoardPanel extends JPanel {
     // Initialisation
     // ---------------------------------------------------------------
 
-    /**
-     * Creates and adds a styled JLabel for each board position.
-     */
+    /** Creates one label per board cell. */
     private void initializeCells() {
         for (int row = 0; row < size; row++) {
             for (int col = 0; col < size; col++) {
@@ -79,11 +72,7 @@ public class BoardPanel extends JPanel {
     // Public update methods
     // ---------------------------------------------------------------
 
-    /**
-     * Refreshes all cells to display the letters in the given board array.
-     * Clears any existing highlights.
-     * @param board the board to display (size x size uppercase chars)
-     */
+    /** Updates cell text and clears highlights. */
     public void updateBoard(char[][] board) {
         for (int row = 0; row < size; row++) {
             for (int col = 0; col < size; col++) {
@@ -94,24 +83,21 @@ public class BoardPanel extends JPanel {
         repaint();
     }
 
-    /**
-     * Highlights the specified cells in gold (to show a word's path).
-     * All other cells are reset to the normal background.
-     * @param highlights size x size boolean array; true = highlight this cell
-     */
+    /** Highlights selected cells. */
     public void highlightCells(boolean[][] highlights) {
         for (int row = 0; row < size; row++) {
             for (int col = 0; col < size; col++) {
-                cells[row][col].setBackground(
-                        highlights[row][col] ? HIGHLIGHT_BG : NORMAL_BG);
+                if (highlights[row][col]) {
+                    cells[row][col].setBackground(HIGHLIGHT_BG);
+                } else {
+                    cells[row][col].setBackground(NORMAL_BG);
+                }
             }
         }
         repaint();
     }
 
-    /**
-     * Resets every cell back to the normal (un-highlighted) background.
-     */
+    /** Clears all cell highlights. */
     public void clearHighlights() {
         for (int row = 0; row < size; row++) {
             for (int col = 0; col < size; col++) {
