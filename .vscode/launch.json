@@ -6,9 +6,10 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Current File",
+            "name": "Run Boggle",
             "request": "launch",
-            "mainClass": "${file}"
+            "mainClass": "BoggleAssignment.Main",
+            "console": "integratedTerminal"
         }
     ]
 }
