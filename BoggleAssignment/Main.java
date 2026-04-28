@@ -20,6 +20,7 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("Choose how to play Boggle:");
         System.out.println("1. GUI version");
+        System.out.println("2. Text version");
         System.out.print("Enter 1 or 2: ");
 
         String choice = input.nextLine().trim();
