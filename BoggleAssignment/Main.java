@@ -58,18 +58,22 @@ public class Main {
             String p1 = askName("Player 1 name: ", "Player 1");
             String p2 = askName("Player 2 name: ", "Player 2");
             game = new Phase1PlayerVsPlayer(p1, p2, rounds, target, minLength, dictionaryPath);
+
         } else if (phase == 2) {
             String player = askName("Your name: ", "Player 1");
             int difficulty = askDifficulty("AI difficulty");
             boolean playerFirst = askYesNo("Should the player go first? (y/n): ");
             game = new Phase2PlayerVsAI(player, difficulty, playerFirst, rounds, target, minLength, dictionaryPath);
+
         } else if (phase == 3) {
             int count = askInt("Number of players: ", 2, 6);
             String[] names = new String[count];
             for (int i = 0; i < count; i++) {
                 names[i] = askName("Player " + (i + 1) + " name: ", "Player " + (i + 1));
+
             }
             game = new Phase3MultiPlayer(names, rounds, target, minLength, dictionaryPath);
+
         } else if (phase == 4) {
             int count = askInt("Number of human players: ", 1, 5);
             String[] names = new String[count];
