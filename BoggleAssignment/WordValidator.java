@@ -9,7 +9,8 @@ package BoggleAssignment;
  * Description: Checks whether a given word can be formed on the Boggle board
  *              by tracing a valid path through adjacent (horizontal, vertical,
  *              or diagonal) letters without reusing any cell.
- *              Uses recursive DFS (depth-first search) with backtracking.
+ *              Uses sequential search to find possible starting cells, then
+ *              uses recursive DFS (depth-first search) with backtracking.
  */
 public class WordValidator {
 
@@ -45,7 +46,7 @@ public class WordValidator {
 
         boolean[][] visited = new boolean[size][size];
 
-        // Try each matching first-letter cell.
+        // Sequentially search the grid for matching first-letter cells.
         for (int row = 0; row < size; row++) {
             for (int col = 0; col < size; col++) {
                 if (board[row][col] == upper.charAt(0)) {
