@@ -110,11 +110,6 @@ public class AIPlayer extends Player {
         return difficulty;
     }
 
-    /** Sets the difficulty level. */
-    public void setDifficulty(int d) {
-        difficulty = d;
-    }
-
     public static String getDifficultyName(int difficulty) {
         if (difficulty == BEGINNER) {
             return "Beginner";

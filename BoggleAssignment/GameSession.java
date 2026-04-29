@@ -255,29 +255,14 @@ public class GameSession {
     /** Board manager. */
     public BoggleBoard getBoggleBoard()         { return boggleBoard; }
 
-    /** Dictionary lookup service. */
-    public Dictionary getDictionary()           { return dictionary; }
-
     /** Current round number. */
     public int getCurrentRound()                { return currentRound; }
 
     /** Configured round count. */
     public int getTotalRounds()                 { return totalRounds; }
 
-    /** Target score, or 0 when disabled. */
-    public int getPointTarget()                 { return pointTarget; }
-
-    /** Words used this round. */
-    public ArrayList<String> getWordsUsedThisRound()  { return wordsUsedThisRound; }
-
     /** Minimum word length. */
     public int getMinWordLength()               { return minWordLength; }
-
-    /** Updates the minimum word length. */
-    public void setMinWordLength(int min) {
-        minWordLength = min;
-        dictionary.setMinWordLength(min);
-    }
 
     /** Checks the round word cache for a duplicate. */
     private boolean wasWordUsedThisRound(String word) {

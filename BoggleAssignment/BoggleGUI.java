@@ -12,6 +12,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.util.*;
 
 public class BoggleGUI extends JFrame {
@@ -55,6 +56,7 @@ public class BoggleGUI extends JFrame {
     public BoggleGUI() {
         setTitle("Boggle");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setIconImage(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB));
 
         cardLayout     = new CardLayout();
         mainContainer  = new JPanel(cardLayout);

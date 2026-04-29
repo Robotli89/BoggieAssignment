@@ -95,20 +95,6 @@ public class BoggleBoard {
     /** Current board array. */
     public char[][] getBoard() { return board; }
 
-    /** Returns a deep copy of a board array. */
-    public static char[][] copyBoard(char[][] original) {
-        char[][] copy = new char[original.length][original[0].length];
-        for (int r = 0; r < original.length; r++) {
-            for (int c = 0; c < original[r].length; c++) {
-                copy[r][c] = original[r][c];
-            }
-        }
-        return copy;
-    }
-
-    /** Board dimension. */
-    public int getSize() { return SIZE; }
-
     /** Builds the text-mode board display. */
     public String toString() {
         String text = "";

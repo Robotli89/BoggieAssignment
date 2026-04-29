@@ -23,7 +23,6 @@ public class Player {
     private int        totalScore;        // score across rounds
     private int        roundScore;        // score this round
     private ArrayList<String> usedWords;  // words used this round
-    private int        consecutivePasses; // pass streak
     public  boolean    isAI;             // true for AI players
     private boolean    playerQuitGame;   // quit state
 
@@ -41,13 +40,12 @@ public class Player {
     }
 
     public void setUpPlayer(String playerName) {
-        name              = playerName;
-        totalScore        = 0;
-        roundScore        = 0;
-        usedWords         = new ArrayList<>();
-        consecutivePasses = 0;
-        isAI              = false;
-        playerQuitGame    = false;
+        name           = playerName;
+        totalScore     = 0;
+        roundScore     = 0;
+        usedWords      = new ArrayList<>();
+        isAI           = false;
+        playerQuitGame = false;
     }
 
     // ---------------------------------------------------------------
@@ -60,15 +58,13 @@ public class Player {
         totalScore += points;
     }
 
-    /** Stores a valid word and resets the pass counter. */
+    /** Stores a valid word played this round. */
     public void addWord(String word) {
         usedWords.add(word.toUpperCase());
-        consecutivePasses = 0;
     }
 
-    /** Increments the pass counter. */
+    /** Records a pass for this player. */
     public void pass() {
-        consecutivePasses++;
     }
 
     /** Marks the player as quit. */
@@ -76,20 +72,9 @@ public class Player {
         playerQuitGame = true;
     }
 
-    /** Checks if this player used the word this round. */
-    public boolean hasUsedWord(String word) {
-        for (int i = 0; i < usedWords.size(); i++) {
-            if (usedWords.get(i).toUpperCase().equals(word.toUpperCase())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /** Clears round-only state. */
     public void resetForNewRound() {
-        roundScore        = 0;
-        consecutivePasses = 0;
+        roundScore = 0;
         usedWords.clear();
     }
 
@@ -105,12 +90,6 @@ public class Player {
 
     /** Round score. */
     public int    getRoundScore()        { return roundScore; }
-
-    /** Words used this round. */
-    public ArrayList<String> getUsedWords()   { return usedWords; }
-
-    /** Consecutive pass count. */
-    public int    getConsecutivePasses() { return consecutivePasses; }
 
     /** AI player flag. */
     public boolean isAI()               { return isAI; }

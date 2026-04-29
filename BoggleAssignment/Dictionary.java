@@ -131,11 +131,6 @@ public class Dictionary {
         return minWordLength;
     }
 
-    /** Updates the minimum word length. */
-    public void setMinWordLength(int min) {
-        minWordLength = min;
-    }
-
     /** Loaded word count. */
     public int getWordCount() {
         return wordCount;
