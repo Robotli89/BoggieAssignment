@@ -45,7 +45,9 @@ public class Main {
         int rounds = askInt("Rounds: ", 1, 20);
         int target = askInt("Point target (0 = off): ", 0, 500);
         int minLength = askInt("Minimum word length: ", 2, 8);
-        String dictionaryPath = askString("Dictionary file (press Enter for wordlist.txt): ");
+        String dictionaryPath = askString(
+            "Dictionary file (press Enter for wordlist.txt): "
+        );
         if (dictionaryPath.equals("")) {
             dictionaryPath = "wordlist.txt";
         }
@@ -55,41 +57,86 @@ public class Main {
         if (phase == 1) {
             String p1 = askName("Player 1 name: ", "Player 1");
             String p2 = askName("Player 2 name: ", "Player 2");
-            game = new Phase1PlayerVsPlayer(p1, p2, rounds, target, minLength, dictionaryPath);
-
+            game = new Phase1PlayerVsPlayer(
+                p1,
+                p2,
+                rounds,
+                target,
+                minLength,
+                dictionaryPath
+            );
         } else if (phase == 2) {
             String player = askName("Your name: ", "Player 1");
             int difficulty = askDifficulty("AI difficulty");
-            boolean playerFirst = askYesNo("Should the player go first? (y/n): ");
-            game = new Phase2PlayerVsAI(player, difficulty, playerFirst, rounds, target, minLength, dictionaryPath);
-
+            boolean playerFirst = askYesNo(
+                "Should the player go first? (y/n): "
+            );
+            game = new Phase2PlayerVsAI(
+                player,
+                difficulty,
+                playerFirst,
+                rounds,
+                target,
+                minLength,
+                dictionaryPath
+            );
         } else if (phase == 3) {
             int count = askInt("Number of players: ", 2, 6);
             String[] names = new String[count];
             for (int i = 0; i < count; i++) {
-                names[i] = askName("Player " + (i + 1) + " name: ", "Player " + (i + 1));
-
+                names[i] = askName(
+                    "Player " + (i + 1) + " name: ",
+                    "Player " + (i + 1)
+                );
             }
-            game = new Phase3MultiPlayer(names, rounds, target, minLength, dictionaryPath);
-
+            game = new Phase3MultiPlayer(
+                names,
+                rounds,
+                target,
+                minLength,
+                dictionaryPath
+            );
         } else if (phase == 4) {
             int count = askInt("Number of human players: ", 1, 5);
             String[] names = new String[count];
             for (int i = 0; i < count; i++) {
-                names[i] = askName("Player " + (i + 1) + " name: ", "Player " + (i + 1));
+                names[i] = askName(
+                    "Player " + (i + 1) + " name: ",
+                    "Player " + (i + 1)
+                );
             }
             int difficulty = askDifficulty("AI difficulty");
-            int aiPosition = askInt("AI position (1 = first): ", 1, count + 1) - 1;
-            game = new Phase4MultiPlayerAI(names, difficulty, aiPosition, rounds, target, minLength, dictionaryPath);
+            int aiPosition =
+                askInt("AI position (1 = first): ", 1, count + 1) - 1;
+            game = new Phase4MultiPlayerAI(
+                names,
+                difficulty,
+                aiPosition,
+                rounds,
+                target,
+                minLength,
+                dictionaryPath
+            );
         } else {
             int ai1 = askDifficulty("AI 1 difficulty");
             int ai2 = askDifficulty("AI 2 difficulty");
             boolean ai1First = new Random().nextBoolean();
-            String boardFile = askString("Board file (press Enter for random): ");
+            String boardFile = askString(
+                "Board file (press Enter for random): "
+            );
             if (boardFile.equals("")) {
                 boardFile = null;
             }
-            game = new Phase5AIvsAI(ai1, ai2, ai1First, rounds, target, minLength, dictionaryPath, boardFile);
+            game = new Phase5AIvsAI(
+                ai1,
+                ai2,
+                ai1First,
+                rounds,
+                target,
+                minLength,
+                dictionaryPath,
+                boardFile
+            );
         }
 
         playTextGame(game);
@@ -97,10 +144,17 @@ public class Main {
 
     private static void playTextGame(GameSession game) {
         while (game.isGameOver() == false && game.shouldGameEndNow() == false) {
-            System.out.println("\nRound " + game.getCurrentRound() + " of " + game.getTotalRounds());
+            System.out.println(
+                "\nRound " +
+                    game.getCurrentRound() +
+                    " of " +
+                    game.getTotalRounds()
+            );
             System.out.println(game.getBoggleBoard());
 
-            while (game.isRoundOver() == false && game.shouldGameEndNow() == false) {
+            while (
+                game.isRoundOver() == false && game.shouldGameEndNow() == false
+            ) {
                 Player current = game.getCurrentPlayer();
                 printScores(game);
                 System.out.println("Current player: " + current.getName());
@@ -109,10 +163,15 @@ public class Main {
                     String move = game.getAIMove();
                     if (move == null) {
                         game.playerQuitsGame();
-                        System.out.println(current.getName() + " quits because no words were found.");
+                        System.out.println(
+                            current.getName() +
+                                " quits because no words were found."
+                        );
                     } else {
                         game.submitWord(move);
-                        System.out.println(current.getName() + " plays " + move + ".");
+                        System.out.println(
+                            current.getName() + " plays " + move + "."
+                        );
                     }
                 } else {
                     System.out.print("Enter word, PASS, QUIT, or SHAKE: ");
@@ -122,8 +181,13 @@ public class Main {
                 System.out.println();
             }
 
-            System.out.println("Round over. Winner: " + game.getRoundWinner().getName());
-            if (game.getCurrentRound() < game.getTotalRounds() && game.shouldGameEndNow() == false) {
+            System.out.println(
+                "Round over. Winner: " + game.getRoundWinner().getName()
+            );
+            if (
+                game.getCurrentRound() < game.getTotalRounds() &&
+                game.shouldGameEndNow() == false
+            ) {
                 game.nextRound();
             } else {
                 break;
@@ -131,7 +195,9 @@ public class Main {
         }
 
         printScores(game);
-        System.out.println("Game over. Winner: " + game.getGameWinner().getName());
+        System.out.println(
+            "Game over. Winner: " + game.getGameWinner().getName()
+        );
     }
 
     private static void handleHumanMove(GameSession game, String move) {
@@ -166,7 +232,9 @@ public class Main {
         System.out.println("Scores:");
         Player[] players = game.getPlayers();
         for (int i = 0; i < players.length; i++) {
-            System.out.println(players[i].getName() + ": " + players[i].getTotalScore());
+            System.out.println(
+                players[i].getName() + ": " + players[i].getTotalScore()
+            );
         }
     }
 
@@ -192,7 +260,9 @@ public class Main {
         input.nextLine();
 
         while (number < min || number > max) {
-            System.out.println("Enter a number from " + min + " to " + max + ".");
+            System.out.println(
+                "Enter a number from " + min + " to " + max + "."
+            );
             System.out.print(question);
             number = input.nextInt();
             input.nextLine();

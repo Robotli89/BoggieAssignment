@@ -8,7 +8,6 @@
  */
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage;
 import java.util.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -54,7 +53,6 @@ public class BoggleGUI extends JFrame {
     public BoggleGUI() {
         setTitle("Boggle");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setIconImage(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB));
 
         cardLayout = new CardLayout();
         mainContainer = new JPanel(cardLayout);
@@ -68,18 +66,15 @@ public class BoggleGUI extends JFrame {
         setLocationRelativeTo(null);
     }
 
-    // =================================================================
-    //  MAIN MENU PANEL
-    // =================================================================
+    // MAIN MENU
     private JPanel buildMainMenuPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-
-        JLabel title = new JLabel("BOGGLE", SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 36));
-        panel.add(title, BorderLayout.NORTH);
+        panel.add(
+            new JLabel("BOGGLE", SwingConstants.CENTER),
+            BorderLayout.NORTH
+        );
 
         JPanel buttonPanel = new JPanel(new GridLayout(6, 1));
-
         String[] labels = {
             "Phase 1 - Player vs Player",
             "Phase 2 - Player vs AI",
@@ -101,18 +96,14 @@ public class BoggleGUI extends JFrame {
         }
 
         panel.add(buttonPanel, BorderLayout.CENTER);
-
         return panel;
     }
 
-    // =================================================================
-    //  SETUP PANEL
-    // =================================================================
+    // SETUP PANEL
     private JPanel buildSetupPanel() {
         JPanel outer = new JPanel(new BorderLayout());
 
         setupTitleLabel = new JLabel("", SwingConstants.CENTER);
-        setupTitleLabel.setFont(new Font("Arial", Font.BOLD, 18));
         outer.add(setupTitleLabel, BorderLayout.NORTH);
 
         setupFieldsPanel = new JPanel();
@@ -122,7 +113,6 @@ public class BoggleGUI extends JFrame {
         outer.add(new JScrollPane(setupFieldsPanel), BorderLayout.CENTER);
 
         JPanel btnRow = new JPanel(new FlowLayout());
-
         JButton backBtn = new JButton("Back");
         JButton startBtn = new JButton("Start Game");
         backBtn.addActionListener(e ->
@@ -239,9 +229,9 @@ public class BoggleGUI extends JFrame {
     private void refreshPhase3Names() {
         int count = (Integer) numPlayersSpinner.getValue();
         for (int i = 0; i < 6; i++) {
-            if (nameFields[i] != null) {
-                nameFields[i].getParent().setVisible(i < count);
-            }
+            if (nameFields[i] != null) nameFields[i].getParent().setVisible(
+                i < count
+            );
         }
         setupFieldsPanel.revalidate();
     }
@@ -302,9 +292,7 @@ public class BoggleGUI extends JFrame {
         setupFieldsPanel.add(row);
     }
 
-    // =================================================================
-    //  Start game
-    // =================================================================
+    // START GAME
     private void startGame() {
         int rounds = (Integer) roundsSpinner.getValue();
         int pointTarget = (Integer) pointTargetSpinner.getValue();
@@ -417,32 +405,24 @@ public class BoggleGUI extends JFrame {
         nextTurn();
     }
 
-    // =================================================================
-    //  GAME PANEL
-    // =================================================================
+    // GAME PANEL
     private JPanel buildGamePanel() {
         JPanel panel = new JPanel(new BorderLayout());
 
-        // top
         JPanel north = new JPanel(new BorderLayout());
         phaseTitleLabel = new JLabel("Boggle");
-        phaseTitleLabel.setFont(new Font("Arial", Font.BOLD, 20));
         roundLabel = new JLabel("Round 1 of ?");
         north.add(phaseTitleLabel, BorderLayout.WEST);
         north.add(roundLabel, BorderLayout.EAST);
         panel.add(north, BorderLayout.NORTH);
 
-        // center
         JPanel center = new JPanel(new BorderLayout());
-
         boardPanel = new BoardPanel(BoggleBoard.SIZE);
         center.add(boardPanel, BorderLayout.WEST);
 
         JPanel rightPanel = new JPanel(new BorderLayout());
 
-        // current player and timer
         JPanel playerInfo = new JPanel(new GridLayout(2, 2));
-        playerInfo.setBorder(BorderFactory.createTitledBorder("Turn Info"));
         playerInfo.add(new JLabel("Current Player:"));
         playerInfo.add(new JLabel("Time Left:"));
         currentPlayerLabel = new JLabel("---");
@@ -451,7 +431,6 @@ public class BoggleGUI extends JFrame {
         playerInfo.add(timerLabel);
         rightPanel.add(playerInfo, BorderLayout.NORTH);
 
-        // score table
         String[] cols = { "Player", "Round", "Total" };
         scoreTableModel = new DefaultTableModel(cols, 0) {
             @Override
@@ -459,26 +438,25 @@ public class BoggleGUI extends JFrame {
                 return false;
             }
         };
-        JTable scoreTable = new JTable(scoreTableModel);
-        JScrollPane scorePane = new JScrollPane(scoreTable);
-        scorePane.setPreferredSize(new Dimension(260, 120));
-        rightPanel.add(scorePane, BorderLayout.CENTER);
+        rightPanel.add(
+            new JScrollPane(new JTable(scoreTableModel)),
+            BorderLayout.CENTER
+        );
 
-        // word history
         JPanel historyWrapper = new JPanel(new BorderLayout());
         historyWrapper.add(new JLabel("Words This Round:"), BorderLayout.NORTH);
         wordHistoryArea = new JTextArea(6, 22);
         wordHistoryArea.setEditable(false);
-        JScrollPane histPane = new JScrollPane(wordHistoryArea);
-        historyWrapper.add(histPane, BorderLayout.CENTER);
+        historyWrapper.add(
+            new JScrollPane(wordHistoryArea),
+            BorderLayout.CENTER
+        );
         rightPanel.add(historyWrapper, BorderLayout.SOUTH);
 
         center.add(rightPanel, BorderLayout.CENTER);
         panel.add(center, BorderLayout.CENTER);
 
-        // bottom
         JPanel south = new JPanel(new BorderLayout());
-
         JPanel inputRow = new JPanel(new FlowLayout());
         wordInput = new JTextField(16);
         wordInput.addActionListener(e -> onSubmit());
@@ -507,8 +485,6 @@ public class BoggleGUI extends JFrame {
         south.add(statusLabel, BorderLayout.SOUTH);
 
         panel.add(south, BorderLayout.SOUTH);
-
-        panel.setPreferredSize(new Dimension(760, 580));
         return panel;
     }
 
@@ -529,9 +505,7 @@ public class BoggleGUI extends JFrame {
         statusLabel.setText("Game started! Good luck.");
     }
 
-    // =================================================================
-    //  GAME LOOP
-    // =================================================================
+    // GAME LOOP
     private void nextTurn() {
         if (currentSession.isRoundOver()) {
             endRound();
@@ -539,12 +513,9 @@ public class BoggleGUI extends JFrame {
         }
 
         Player current = currentSession.getCurrentPlayer();
-        if (current.isAI()) {
-            currentPlayerLabel.setText(current.getName() + " (AI)");
-        } else {
-            currentPlayerLabel.setText(current.getName());
-        }
-
+        currentPlayerLabel.setText(
+            current.isAI() ? current.getName() + " (AI)" : current.getName()
+        );
         stopTimers();
 
         if (current.isAI()) {
@@ -571,11 +542,6 @@ public class BoggleGUI extends JFrame {
     private void tickTimer() {
         timeLeft--;
         timerLabel.setText(String.valueOf(timeLeft));
-        if (timeLeft <= 5) {
-            timerLabel.setForeground(Color.RED);
-        } else {
-            timerLabel.setForeground(Color.BLACK);
-        }
         if (timeLeft <= 0) {
             countdownTimer.stop();
             statusLabel.setText(
@@ -621,9 +587,7 @@ public class BoggleGUI extends JFrame {
 
     private void onSubmit() {
         String word = wordInput.getText().trim().toUpperCase();
-        if (word.length() == 0) {
-            return;
-        }
+        if (word.isEmpty()) return;
 
         stopTimers();
         String playerName = currentSession.getCurrentPlayer().getName();
@@ -728,53 +692,46 @@ public class BoggleGUI extends JFrame {
             endGame();
             return;
         }
-        if (currentSession.isRoundOver()) {
-            endRound();
-        } else {
-            nextTurn();
-        }
+        if (currentSession.isRoundOver()) endRound();
+        else nextTurn();
     }
 
     private void restartTimerForSameTurn() {
         timeLeft = 15;
         timerLabel.setText(String.valueOf(timeLeft));
-        timerLabel.setForeground(Color.BLACK);
         countdownTimer = new javax.swing.Timer(1000, e -> tickTimer());
         countdownTimer.start();
         wordInput.selectAll();
         wordInput.requestFocus();
     }
 
-    // =================================================================
-    //  ROUND / GAME END
-    // =================================================================
+    // ROUND / GAME END
     private void endRound() {
         stopTimers();
         setInputEnabled(false);
 
         Player winner = currentSession.getRoundWinner();
-        String message =
+        StringBuilder message = new StringBuilder(
             "Round " +
-            currentSession.getCurrentRound() +
-            " over!\n\nScores this round:\n";
-        Player[] players = currentSession.getPlayers();
-        for (int i = 0; i < players.length; i++) {
-            message =
-                message +
-                "  " +
-                players[i].getName() +
-                ": " +
-                players[i].getRoundScore() +
-                " pts\n";
+                currentSession.getCurrentRound() +
+                " over!\n\nScores this round:\n"
+        );
+        for (Player p : currentSession.getPlayers()) {
+            message
+                .append("  ")
+                .append(p.getName())
+                .append(": ")
+                .append(p.getRoundScore())
+                .append(" pts\n");
         }
-        message = message + "\nRound winner: " + winner.getName() + "!";
+        message.append("\nRound winner: ").append(winner.getName()).append("!");
 
         if (currentSession.isGameOver()) {
             endGame();
         } else {
             int choice = JOptionPane.showOptionDialog(
                 this,
-                message,
+                message.toString(),
                 "Round Over",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.INFORMATION_MESSAGE,
@@ -806,22 +763,22 @@ public class BoggleGUI extends JFrame {
         setInputEnabled(false);
 
         Player winner = currentSession.getGameWinner();
-        String message = "Game Over!\n\nFinal Scores:\n";
-        Player[] players = currentSession.getPlayers();
-        for (int i = 0; i < players.length; i++) {
-            message =
-                message +
-                "  " +
-                players[i].getName() +
-                ": " +
-                players[i].getTotalScore() +
-                " pts\n";
+        StringBuilder message = new StringBuilder(
+            "Game Over!\n\nFinal Scores:\n"
+        );
+        for (Player p : currentSession.getPlayers()) {
+            message
+                .append("  ")
+                .append(p.getName())
+                .append(": ")
+                .append(p.getTotalScore())
+                .append(" pts\n");
         }
-        message = message + "\nWinner: " + winner.getName() + "!";
+        message.append("\nWinner: ").append(winner.getName()).append("!");
 
         int choice = JOptionPane.showOptionDialog(
             this,
-            message,
+            message.toString(),
             "Game Over",
             JOptionPane.YES_NO_OPTION,
             JOptionPane.INFORMATION_MESSAGE,
@@ -830,17 +787,11 @@ public class BoggleGUI extends JFrame {
             "Main Menu"
         );
 
-        if (choice == JOptionPane.YES_OPTION) {
-            showSetup(selectedPhase);
-        } else {
-            cardLayout.show(mainContainer, CARD_MENU);
-        }
+        if (choice == JOptionPane.YES_OPTION) showSetup(selectedPhase);
+        else cardLayout.show(mainContainer, CARD_MENU);
     }
 
-    // =================================================================
-    //  UI HELPERS
-    // =================================================================
-
+    // HELPERS
     private void updateRoundLabel() {
         roundLabel.setText(
             "Round " +
@@ -852,13 +803,12 @@ public class BoggleGUI extends JFrame {
 
     private void rebuildScoreTable() {
         scoreTableModel.setRowCount(0);
-        Player[] players = currentSession.getPlayers();
-        for (int i = 0; i < players.length; i++) {
+        for (Player p : currentSession.getPlayers()) {
             scoreTableModel.addRow(
                 new Object[] {
-                    players[i].getName(),
-                    players[i].getRoundScore(),
-                    players[i].getTotalScore(),
+                    p.getName(),
+                    p.getRoundScore(),
+                    p.getTotalScore(),
                 }
             );
         }
@@ -887,7 +837,6 @@ public class BoggleGUI extends JFrame {
         if (aiMoveTimer != null && aiMoveTimer.isRunning()) aiMoveTimer.stop();
     }
 
-    // setup helpers
     private JTextField addTextFieldRow(String labelText, String defaultValue) {
         JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT));
         row.add(new JLabel(labelText));
@@ -923,31 +872,17 @@ public class BoggleGUI extends JFrame {
     }
 
     private static String emptyFallbackName(String name, String fallback) {
-        if (name == null) {
-            return fallback;
-        } else if (name.length() == 0) {
-            return fallback;
-        } else {
-            return name;
-        }
+        return (name == null || name.isEmpty()) ? fallback : name;
     }
 
     private String getBlankAsNull(String text) {
-        if (text.length() == 0) {
-            return null;
-        } else {
-            return text;
-        }
+        return text.isEmpty() ? null : text;
     }
 
     private int getSelectedDifficulty(JComboBox<String> combo) {
         String selected = (String) combo.getSelectedItem();
-        if ("BEGINNER".equals(selected)) {
-            return AIPlayer.BEGINNER;
-        } else if ("MEDIUM".equals(selected)) {
-            return AIPlayer.MEDIUM;
-        } else {
-            return AIPlayer.SMART;
-        }
+        if ("BEGINNER".equals(selected)) return AIPlayer.BEGINNER;
+        if ("MEDIUM".equals(selected)) return AIPlayer.MEDIUM;
+        return AIPlayer.SMART;
     }
 }
