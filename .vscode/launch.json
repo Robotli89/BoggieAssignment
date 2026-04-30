@@ -8,7 +8,7 @@
             "type": "java",
             "name": "Run Boggle",
             "request": "launch",
-            "mainClass": "BoggleAssignment.Main",
+            "mainClass": "Main",
             "console": "integratedTerminal"
         }
     ]

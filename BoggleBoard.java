@@ -1,5 +1,3 @@
-package BoggleAssignment;
-
 /**
  * Author: Kevin Li and Ethan Chuang
  * Date:   [TBD]
